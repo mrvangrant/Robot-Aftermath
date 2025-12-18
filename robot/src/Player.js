@@ -9,7 +9,13 @@ import idleDown from "./Idle/idle_down.gif";
 import idleLeft from "./Idle/idle_left.gif";
 import idleRight from "./Idle/idle_right.gif";
 
-export default function Player({ size = 200, speed = 280 }) {
+export default function Player({
+  size = 200,
+  speed = 280,
+  onPosChange,
+  alive = true,
+  hitboxScale = 0.6,
+}) {
   const containerRef = useRef(null);
   const [pos, setPos] = useState({ x: 100, y: 100 });
   const keysRef = useRef(new Set());
@@ -39,8 +45,29 @@ export default function Player({ size = 200, speed = 280 }) {
     };
   }, []);
 
+  // Coloca o Player no centro ao iniciar
+  useEffect(() => {
+    const w =
+      (containerRef.current && containerRef.current.clientWidth) ||
+      window.innerWidth ||
+      800;
+    const h =
+      (containerRef.current && containerRef.current.clientHeight) ||
+      window.innerHeight ||
+      600;
+    const startX = Math.max(0, Math.round((w - size) / 2));
+    const startY = Math.max(0, Math.round((h - size) / 2));
+    setPos({ x: startX, y: startY });
+  }, [size]);
+
   useEffect(() => {
     let rafId = null;
+
+    if (!alive) {
+      // se não está vivo, não correr o loop
+      lastTimeRef.current = null;
+      return undefined;
+    }
 
     function step(timestamp) {
       if (lastTimeRef.current == null) lastTimeRef.current = timestamp;
@@ -130,10 +157,32 @@ export default function Player({ size = 200, speed = 280 }) {
       cancelAnimationFrame(rafId);
       lastTimeRef.current = null;
     };
-  }, [size, speed, sprite, lastDir]);
+  }, [size, speed, sprite, lastDir, alive]);
+
+  // notify parent about position changes
+  useEffect(() => {
+    if (typeof onPosChange === "function") onPosChange(pos);
+  }, [pos, onPosChange]);
+
+  // hitbox size (scaled & centered inside visual sprite)
+  const hbSize = Math.round(size * hitboxScale);
+  const hbOffset = Math.round((size - hbSize) / 2);
 
   return (
     <div className="game-container" ref={containerRef}>
+      {/* visual hitbox for debugging collisions (scaled & centered) */}
+      <div
+        className="player-hitbox"
+        style={{
+          width: hbSize,
+          height: hbSize,
+          transform: `translate(${Math.round(pos.x + hbOffset)}px, ${Math.round(
+            pos.y + hbOffset
+          )}px)`,
+        }}
+        aria-hidden
+      />
+
       <div
         className="player"
         style={{

@@ -49,3 +49,58 @@ body,
 .player:focus {
   outline: 2px dashed #fff;
 }
+
+/* Enemy styles */
+.enemy-container {
+  position: absolute;
+  inset: 0; /* fill parent */
+  pointer-events: none;
+}
+
+.enemy {
+  position: absolute;
+  background: #c33;
+  border: 2px solid #600;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+  border-radius: 6px;
+  will-change: transform;
+}
+
+/* Player hitbox overlay (for debugging collision) */
+.player-hitbox {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px dashed rgba(255, 0, 0, 0.9);
+  background: rgba(255, 0, 0, 0.08);
+  pointer-events: none;
+  border-radius: 4px;
+  will-change: transform;
+}
+
+/* Game over overlay */
+.game-over {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  text-align: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.game-over__text {
+  font-weight: 700;
+  font-size: clamp(28px, 6vw, 84px);
+  line-height: 1.05;
+  text-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+}
+
+.game-over__sub {
+  margin-top: 12px;
+  font-size: clamp(14px, 2.5vw, 20px);
+  opacity: 0.9;
+}
