@@ -53,6 +53,11 @@ function App() {
     handleEnemyHit();
   }
 
+  // quando um inimigo é atingido por uma bala, removemos do array
+  function handleEnemyKilled(id) {
+    setEnemies((prev) => prev.filter((e) => e.id !== id));
+  }
+
   // recebe atualizações de posição dos inimigos
   function updateEnemyPos(id, x, y) {
     setEnemies((prev) => {
@@ -70,7 +75,10 @@ function App() {
 
   // spawn numero de inimigos baseado na ronda
   function spawnForRound(r) {
-    const count = r === 1 ? 5 : 5 * r;
+    // base inicial de inimigos
+    const base = 5;
+    // aumenta 50% a cada ronda: base * 1.5^(r-1)
+    const count = Math.max(1, Math.round(base * Math.pow(1.5, r - 1)));
     const list = [];
     const minDist = enemySize * 5; // distancia minima entre inimigos
     const maxW = Math.max(0, worldWidth - enemySize);
@@ -107,6 +115,14 @@ function App() {
   useEffect(() => {
     spawnForRound(round);
   }, [round]);
+
+  // Avança para a próxima ronda automaticamente quando não restarem inimigos
+  // Espera 3 segundos antes de avançar; cancela se novos inimigos surgirem
+  useEffect(() => {
+    if (enemies.length !== 0) return undefined;
+    const t = setTimeout(() => setRound((r) => r + 1), 3000);
+    return () => clearTimeout(t);
+  }, [enemies.length]);
 
   // centraliza a camera no jogador
   let tx = -playerPos.x + viewport.w / 2 - playerSize / 2;
@@ -153,6 +169,8 @@ function App() {
               invincible={invincible}
               worldWidth={worldWidth}
               worldHeight={worldHeight}
+              enemies={enemies}
+              onEnemyHit={handleEnemyKilled}
             />
             {enemies.map((e) => (
               <Enemy

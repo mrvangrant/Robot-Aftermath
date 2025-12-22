@@ -8,6 +8,14 @@ import idleUp from "./Idle/idle_up.gif";
 import idleDown from "./Idle/idle_down.gif";
 import idleLeft from "./Idle/idle_left.gif";
 import idleRight from "./Idle/idle_right.gif";
+import BulletManager from "./BulletManager";
+
+// Player: controla o jogador — movimento, animações e integração com projéteis.
+// Props principais:
+// - size, speed: dimensões e velocidade do jogador
+// - onPosChange: callback com posição do jogador (x,y)
+// - enemies / onEnemyHit: lista de inimigos e callback para quando um inimigo for atingido
+// - fireRate, fireRange, bulletSpeed: parâmetros do comportamento de tiro automático
 
 export default function Player({
   size = 200,
@@ -18,6 +26,12 @@ export default function Player({
   worldWidth = typeof window !== "undefined" ? window.innerWidth : 800,
   worldHeight = typeof window !== "undefined" ? window.innerHeight : 600,
   invincible = false,
+  // integra bullets: receber lista de inimigos e callback
+  enemies = [],
+  onEnemyHit = () => {},
+  fireRate = 1,
+  fireRange = 600,
+  bulletSpeed = 600,
 }) {
   const containerRef = useRef(null);
   const [pos, setPos] = useState({ x: 100, y: 100 });
@@ -25,6 +39,8 @@ export default function Player({
   const lastTimeRef = useRef(null);
   const [sprite, setSprite] = useState(idleDown);
   const [lastDir, setLastDir] = useState("down");
+
+  // Input: handlers de teclado (WASD)
 
   useEffect(() => {
     function handleKeyDown(e) {
@@ -54,6 +70,8 @@ export default function Player({
     const h = Math.max(0, Math.round((worldHeight - size) / 2));
     setPos({ x: w, y: h });
   }, [size, worldWidth, worldHeight]);
+
+  // Loop principal: movimento do jogador e troca de sprite
 
   useEffect(() => {
     let rafId = null;
@@ -151,7 +169,7 @@ export default function Player({
       cancelAnimationFrame(rafId);
       lastTimeRef.current = null;
     };
-  }, [size, speed, sprite, lastDir, alive]);
+  }, [size, speed, sprite, lastDir, alive, worldWidth, worldHeight]);
 
   useEffect(() => {
     if (typeof onPosChange === "function") onPosChange(pos);
@@ -161,8 +179,11 @@ export default function Player({
   const hbSize = Math.round(size * hitboxScale);
   const hbOffset = Math.round((size - hbSize) / 2);
 
+  // center position for bullets
+  const centerPos = { x: Math.round(pos.x + size / 2), y: Math.round(pos.y + size / 2) };
+
   return (
-    <div className="game-container" ref={containerRef}>
+    <div className="game-container" ref={containerRef} style={{ position: "relative" }}>
       {/* visual hitbox for debugging collisions (scaled & centered) */}
       <div
         className="player-hitbox"
@@ -191,6 +212,17 @@ export default function Player({
           opacity: invincible ? 0.6 : 1,
         }}
         aria-label="player"
+      />
+      // fo para bulletManager
+      <BulletManager
+        playerPos={centerPos}
+        enemies={enemies}
+        fireRate={fireRate}
+        fireRange={fireRange}
+        bulletSpeed={bulletSpeed}
+        onEnemyHit={onEnemyHit}
+        worldWidth={worldWidth}
+        worldHeight={worldHeight}
       />
     </div>
   );
