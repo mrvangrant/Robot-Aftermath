@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
+import heartImg from "./teste.png";
 import Player from "./Player";
 import Enemy from "./Enemy";
 
@@ -11,29 +12,178 @@ function App() {
   const enemySize = 96;
   const [playerPos, setPlayerPos] = useState({ x: 100, y: 100 });
   const [playerAlive, setPlayerAlive] = useState(true);
+  const maxLives = 3;
+  const [lives, setLives] = useState(maxLives);
+  const [invincible, setInvincible] = useState(false);
+  const [round, setRound] = useState(1);
+  const [enemies, setEnemies] = useState([]);
+  const enemyIdRef = React.useRef(1);
+  const [viewport, setViewport] = useState({
+    w: typeof window !== "undefined" ? window.innerWidth : 800,
+    h: typeof window !== "undefined" ? window.innerHeight : 600,
+  });
+
+  useEffect(() => {
+    function onResize() {
+      setViewport({ w: window.innerWidth, h: window.innerHeight });
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   function handleDeath() {
     setPlayerAlive(false);
   }
 
+  function handleEnemyHit() {
+    if (invincible || !playerAlive) return;
+
+    setLives((prev) => {
+      const next = Math.max(0, prev - 1);
+      if (next <= 0) setPlayerAlive(false);
+      return next;
+    });
+
+    // 2 segundos de invencibilidade
+    setInvincible(true);
+    setTimeout(() => setInvincible(false), 2000);
+  }
+
+  function handleEnemyHitById(id) {
+    handleEnemyHit();
+  }
+
+  // recebe atualizações de posição dos inimigos
+  function updateEnemyPos(id, x, y) {
+    setEnemies((prev) => {
+      let changed = false;
+      const next = prev.map((e) => {
+        if (e.id === id) {
+          if (e.x !== x || e.y !== y) changed = true;
+          return { ...e, x, y };
+        }
+        return e;
+      });
+      return changed ? next : prev;
+    });
+  }
+
+  // spawn numero de inimigos baseado na ronda
+  function spawnForRound(r) {
+    const count = r === 1 ? 5 : 5 * r;
+    const list = [];
+    const minDist = enemySize * 5; // distancia minima entre inimigos
+    const maxW = Math.max(0, worldWidth - enemySize);
+    const maxH = Math.max(0, worldHeight - enemySize);
+    let attempts = 0;
+    while (list.length < count && attempts < count * 50) {
+      attempts++;
+      const rx = Math.floor(Math.random() * (maxW || 1));
+      const ry = Math.floor(Math.random() * (maxH || 1));
+      let ok = true;
+      for (const e of list) {
+        const dx = e.x - rx;
+        const dy = e.y - ry;
+        if (Math.hypot(dx, dy) < minDist) {
+          ok = false;
+          break;
+        }
+      }
+      if (!ok) continue;
+      list.push({ id: enemyIdRef.current++, x: rx, y: ry });
+    }
+    while (list.length < count) {
+      const rx = Math.floor(Math.random() * (maxW || 1));
+      const ry = Math.floor(Math.random() * (maxH || 1));
+      list.push({ id: enemyIdRef.current++, x: rx, y: ry });
+    }
+    setEnemies(list);
+  }
+
+  const worldWidth = Math.max(viewport.w * 2, 2000);
+  const worldHeight = Math.max(viewport.h * 2, 2000);
+
+  // spawn inimigos ao iniciar e ao mudar de ronda
+  useEffect(() => {
+    spawnForRound(round);
+  }, [round]);
+
+  // centraliza a camera no jogador
+  let tx = -playerPos.x + viewport.w / 2 - playerSize / 2;
+  let ty = -playerPos.y + viewport.h / 2 - playerSize / 2;
+  // Faz com que a camera não mostre áreas fora do mundo
+  const minTx = -(worldWidth - viewport.w);
+  const minTy = -(worldHeight - viewport.h);
+  if (tx > 0) tx = 0;
+  if (tx < minTx) tx = minTx;
+  if (ty > 0) ty = 0;
+  if (ty < minTy) ty = minTy;
+
   return (
     <div className="App">
       <header className="App-header">
-        <Player
-          size={playerSize}
-          speed={280}
-          onPosChange={setPlayerPos}
-          alive={playerAlive}
-          hitboxScale={playerHitboxScale}
-        />
-        <Enemy
-          playerPos={playerPos}
-          size={enemySize}
-          speed={160}
-          playerHitboxSize={playerHitboxSize}
-          playerHitboxOffset={playerHitboxOffset}
-          onDie={handleDeath}
-        />
+        <div
+          className="camera"
+          style={{
+            width: viewport.w,
+            height: viewport.h,
+            position: "absolute",
+            inset: 0,
+          }}
+        >
+          <div
+            className="world"
+            style={{
+              width: worldWidth,
+              height: worldHeight,
+              transform: `translate3d(${Math.round(tx)}px, ${Math.round(
+                ty
+              )}px, 0)`,
+              position: "absolute",
+              left: 0,
+              top: 0,
+            }}
+          >
+            <Player
+              size={playerSize}
+              speed={280}
+              onPosChange={setPlayerPos}
+              alive={playerAlive}
+              hitboxScale={playerHitboxScale}
+              invincible={invincible}
+              worldWidth={worldWidth}
+              worldHeight={worldHeight}
+            />
+            {enemies.map((e) => (
+              <Enemy
+                key={e.id}
+                id={e.id}
+                initialPos={e}
+                allEnemies={enemies}
+                onPosUpdate={updateEnemyPos}
+                playerPos={playerPos}
+                size={enemySize}
+                speed={160}
+                playerHitboxSize={playerHitboxSize}
+                playerHitboxOffset={playerHitboxOffset}
+                onDie={(id) => handleEnemyHitById(id)}
+                worldWidth={worldWidth}
+                worldHeight={worldHeight}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="lives" aria-hidden>
+          {Array.from({ length: lives }).map((_, i) => (
+            <img key={i} src={heartImg} alt={`life-${i + 1}`} />
+          ))}
+        </div>
+        <div className="hud">
+          <div className="hud__round">Ronda: {round}</div>
+          <div className="hud__enemies">
+            Inimigos Restantes: {enemies.length}
+          </div>
+        </div>
       </header>
       {!playerAlive && (
         <div className="game-over" role="dialog" aria-modal="true">

@@ -15,6 +15,9 @@ export default function Player({
   onPosChange,
   alive = true,
   hitboxScale = 0.6,
+  worldWidth = typeof window !== "undefined" ? window.innerWidth : 800,
+  worldHeight = typeof window !== "undefined" ? window.innerHeight : 600,
+  invincible = false,
 }) {
   const containerRef = useRef(null);
   const [pos, setPos] = useState({ x: 100, y: 100 });
@@ -47,18 +50,10 @@ export default function Player({
 
   // Coloca o Player no centro ao iniciar
   useEffect(() => {
-    const w =
-      (containerRef.current && containerRef.current.clientWidth) ||
-      window.innerWidth ||
-      800;
-    const h =
-      (containerRef.current && containerRef.current.clientHeight) ||
-      window.innerHeight ||
-      600;
-    const startX = Math.max(0, Math.round((w - size) / 2));
-    const startY = Math.max(0, Math.round((h - size) / 2));
-    setPos({ x: startX, y: startY });
-  }, [size]);
+    const w = Math.max(0, Math.round((worldWidth - size) / 2));
+    const h = Math.max(0, Math.round((worldHeight - size) / 2));
+    setPos({ x: w, y: h });
+  }, [size, worldWidth, worldHeight]);
 
   useEffect(() => {
     let rafId = null;
@@ -90,9 +85,8 @@ export default function Player({
       }
 
       setPos((p) => {
-        const container = containerRef.current || document.documentElement;
-        const maxW = (container.clientWidth || window.innerWidth) - size;
-        const maxH = (container.clientHeight || window.innerHeight) - size;
+        const maxW = Math.max(0, (worldWidth || window.innerWidth) - size);
+        const maxH = Math.max(0, (worldHeight || window.innerHeight) - size);
         let nx = p.x + dx * speed * dt;
         let ny = p.y + dy * speed * dt;
         if (nx < 0) nx = 0;
@@ -159,7 +153,6 @@ export default function Player({
     };
   }, [size, speed, sprite, lastDir, alive]);
 
-  // notify parent about position changes
   useEffect(() => {
     if (typeof onPosChange === "function") onPosChange(pos);
   }, [pos, onPosChange]);
@@ -195,6 +188,7 @@ export default function Player({
           backgroundRepeat: "no-repeat",
           backgroundSize: "contain",
           backgroundPosition: "center center",
+          opacity: invincible ? 0.6 : 1,
         }}
         aria-label="player"
       />

@@ -3,18 +3,24 @@ import "./App.css";
 
 // Enemy: aparece aleatoriamente e persegue o jogador.
 export default function Enemy({
+  id,
   playerPos = { x: 0, y: 0 },
   size = 64,
   speed = 120,
   playerHitboxSize = 200,
   playerHitboxOffset = 0,
   onDie,
+  worldWidth = typeof window !== "undefined" ? window.innerWidth : 800,
+  worldHeight = typeof window !== "undefined" ? window.innerHeight : 600,
+  initialPos = null,
+  allEnemies = [],
+  onPosUpdate = null,
 }) {
   const [pos, setPos] = useState({ x: 50, y: 50 });
   const posRef = useRef(pos);
   const lastTimeRef = useRef(null);
   const rafRef = useRef(null);
-  const deadRef = useRef(false);
+  const lastHitRef = useRef(0);
 
   // atualiza a ref sempre que posição muda
   useEffect(() => {
@@ -23,13 +29,23 @@ export default function Enemy({
 
   // spawn aleatorio ao correr
   useEffect(() => {
-    const maxW = Math.max(0, window.innerWidth - size);
-    const maxH = Math.max(0, window.innerHeight - size);
+    if (
+      initialPos &&
+      typeof initialPos.x === "number" &&
+      typeof initialPos.y === "number"
+    ) {
+      setPos({ x: initialPos.x, y: initialPos.y });
+      posRef.current = { x: initialPos.x, y: initialPos.y };
+      return;
+    }
+
+    const maxW = Math.max(0, (worldWidth || window.innerWidth) - size);
+    const maxH = Math.max(0, (worldHeight || window.innerHeight) - size);
     const rx = Math.floor(Math.random() * (maxW || 1));
     const ry = Math.floor(Math.random() * (maxH || 1));
     setPos({ x: rx, y: ry });
     posRef.current = { x: rx, y: ry };
-  }, [size]);
+  }, [size, worldWidth, worldHeight]);
 
   // loop de movimentação que segue `playerPos`
   useEffect(() => {
@@ -54,17 +70,54 @@ export default function Enemy({
       // colisão: se a distância entre centros for menor que metade soma dos tamanhos
       const collisionDist = (playerHitboxSize + size) / 2;
       if (dist <= collisionDist) {
-        if (!deadRef.current) {
-          deadRef.current = true;
-          if (typeof onDie === "function") onDie();
+        const now = Date.now();
+        // previne múltiplos hits em curto espaço de tempo
+        if (!lastHitRef.current || now - lastHitRef.current > 500) {
+          lastHitRef.current = now;
+          if (typeof onDie === "function") onDie(id);
         }
-        // parar de mover após colidir
-        // não return; deixamos o rAF continuar até cleanup
       } else if (dist > 1) {
-        const nx = cur.x + (dx / dist) * speed * dt;
-        const ny = cur.y + (dy / dist) * speed * dt;
+        // segue o jogador
+        const tx = dx / dist;
+        const ty = dy / dist;
+
+        // separação entre outros inimigos
+        const sepRadius = Math.max(size * 1.6, 120);
+        let sepX = 0;
+        let sepY = 0;
+        let sepCount = 0;
+        for (const other of allEnemies || []) {
+          if (!other || other.id === id) continue;
+          const ox = other.x;
+          const oy = other.y;
+          if (typeof ox !== "number" || typeof oy !== "number") continue;
+          const ddx = cur.x - ox;
+          const ddy = cur.y - oy;
+          const dd = Math.hypot(ddx, ddy);
+          if (dd > 0 && dd < sepRadius) {
+            const push = (sepRadius - dd) / sepRadius;
+            sepX += (ddx / dd) * push;
+            sepY += (ddy / dd) * push;
+            sepCount++;
+          }
+        }
+
+        let moveX = tx;
+        let moveY = ty;
+        if (sepCount > 0) {
+          sepX /= sepCount;
+          sepY /= sepCount;
+          const sepBlend = 0.9;
+          moveX = tx + sepX * sepBlend;
+          moveY = ty + sepY * sepBlend;
+        }
+
+        const mlen = Math.hypot(moveX, moveY) || 1;
+        const nx = cur.x + (moveX / mlen) * speed * dt;
+        const ny = cur.y + (moveY / mlen) * speed * dt;
         setPos({ x: nx, y: ny });
         posRef.current = { x: nx, y: ny };
+        if (typeof onPosUpdate === "function") onPosUpdate(id, nx, ny);
       }
 
       rafRef.current = requestAnimationFrame(step);
