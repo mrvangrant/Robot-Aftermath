@@ -30,8 +30,8 @@ export default function BulletManager({
       let best = null;
       let bestD2 = Infinity;
       for (const e of enemies || []) {
-        const ex = (typeof e.x === "number" ? e.x : 0) + ((e.w || 0) / 2);
-        const ey = (typeof e.y === "number" ? e.y : 0) + ((e.h || 0) / 2);
+        const ex = (typeof e.x === "number" ? e.x : 0) + (e.w || 0) / 2;
+        const ey = (typeof e.y === "number" ? e.y : 0) + (e.h || 0) / 2;
         const dx = ex - px;
         const dy = ey - py;
         const d2 = dx * dx + dy * dy;
@@ -125,7 +125,16 @@ export default function BulletManager({
     return () => {
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [playerPos, enemies, fireRate, fireRange, bulletSpeed, onEnemyHit, worldWidth, worldHeight]);
+  }, [
+    playerPos,
+    enemies,
+    fireRate,
+    fireRange,
+    bulletSpeed,
+    onEnemyHit,
+    worldWidth,
+    worldHeight,
+  ]);
 
   return (
     <>

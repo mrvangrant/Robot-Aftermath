@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
-import heartImg from "./teste.png";
+import heartImg from "./Vida.png";
 import Player from "./Player";
 import Enemy from "./Enemy";
 import LevelUps from "./LevelUps";
 
 function App() {
-  const playerSize = 200;
+  const playerSize = 200; // tamanho do jogador
   const playerHitboxScale = 0.3;
   const playerHitboxSize = Math.round(playerSize * playerHitboxScale);
   const playerHitboxOffset = Math.round((playerSize - playerHitboxSize) / 2);
-  const enemySize = 96;
+  const enemySize = 80; // tamanho dos inimigos
   const [playerPos, setPlayerPos] = useState({ x: 100, y: 100 });
   const [playerAlive, setPlayerAlive] = useState(true);
   const maxLives = 3;
@@ -36,7 +36,7 @@ function App() {
     health: 100,
     damage: 10,
     fireRate: 1,
-    maxLives: 3
+    maxLives: 3,
   });
 
   useEffect(() => {
@@ -72,25 +72,25 @@ function App() {
   // quando um inimigo é atingido por uma bala, removemos do array
   function handleEnemyKilled(id) {
     setEnemies((prev) => prev.filter((e) => e.id !== id));
-    setKills(k => {
-    const next = k + 1;
-    // abrir level up se atingir threshold
-    if (next >= killToNext) {
-      setShowLevelUp(true);
-      setPaused(true);
-    }
-    return next;
-  });
+    setKills((k) => {
+      const next = k + 1;
+      // abrir level up se atingir threshold
+      if (next >= killToNext) {
+        setShowLevelUp(true);
+        setPaused(true);
+      }
+      return next;
+    });
   }
 
   // recebe atualizações de posição dos inimigos
-  function updateEnemyPos(id, x, y) {
+  function updateEnemyPos(id, x, y, size) {
     setEnemies((prev) => {
       let changed = false;
       const next = prev.map((e) => {
         if (e.id === id) {
           if (e.x !== x || e.y !== y) changed = true;
-          return { ...e, x, y };
+          return { ...e, x, y, w: size, h: size };
         }
         return e;
       });
@@ -225,7 +225,7 @@ function App() {
                 onPosUpdate={updateEnemyPos}
                 playerPos={playerPos}
                 size={enemySize}
-                speed={160}
+                speed={220}
                 playerHitboxSize={playerHitboxSize}
                 playerHitboxOffset={playerHitboxOffset}
                 onDie={(id) => handleEnemyHitById(id)}
@@ -247,11 +247,12 @@ function App() {
             Inimigos Restantes: {enemies.length}
           </div>
           <div className="hud__level">Nível: {level}</div>
-          <div className="hud__kills">Kills: {kills}/{killToNext}</div>
+          <div className="hud__kills">
+            Kills: {kills}/{killToNext}
+          </div>
         </div>
       </header>
-     
-     
+
       {showLevelUp && (
         <LevelUps
           playerStats={playerStats}
@@ -268,7 +269,9 @@ function App() {
                   break;
                 case "firerate":
                   // aumentar tiros por segundo
-                  next.fireRate = Number(((next.fireRate || 1) * 1.15).toFixed(2));
+                  next.fireRate = Number(
+                    ((next.fireRate || 1) * 1.15).toFixed(2)
+                  );
                   break;
                 default:
                   break;

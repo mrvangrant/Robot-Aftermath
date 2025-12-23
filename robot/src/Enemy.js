@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./App.css";
+import robotLeftSprite from "./robot/robot-left.gif";
+import robotRightSprite from "./robot/robot-right.gif";
 
 // Enemy: aparece aleatoriamente e persegue o jogador.
 export default function Enemy({
@@ -18,6 +20,7 @@ export default function Enemy({
   paused = false,
 }) {
   const [pos, setPos] = useState({ x: 50, y: 50 });
+  const [direction, setDirection] = useState("right");
   const posRef = useRef(pos);
   const lastTimeRef = useRef(null);
   const rafRef = useRef(null);
@@ -123,9 +126,17 @@ export default function Enemy({
         const mlen = Math.hypot(moveX, moveY) || 1;
         const nx = cur.x + (moveX / mlen) * speed * dt;
         const ny = cur.y + (moveY / mlen) * speed * dt;
+
+        // atualiza direção baseado no movimento horizontal
+        if (moveX < -0.1) {
+          setDirection("left");
+        } else if (moveX > 0.1) {
+          setDirection("right");
+        }
+
         setPos({ x: nx, y: ny });
         posRef.current = { x: nx, y: ny };
-        if (typeof onPosUpdate === "function") onPosUpdate(id, nx, ny);
+        if (typeof onPosUpdate === "function") onPosUpdate(id, nx, ny, size);
       }
 
       rafRef.current = requestAnimationFrame(step);
@@ -135,7 +146,14 @@ export default function Enemy({
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [playerPos?.x, playerPos?.y, speed, playerHitboxSize, playerHitboxOffset, paused]);
+  }, [
+    playerPos?.x,
+    playerPos?.y,
+    speed,
+    playerHitboxSize,
+    playerHitboxOffset,
+    paused,
+  ]);
 
   const style = {
     width: `${size}px`,
@@ -143,9 +161,35 @@ export default function Enemy({
     transform: `translate(${Math.round(pos.x)}px, ${Math.round(pos.y)}px)`,
   };
 
+  const spriteImage = direction === "left" ? robotLeftSprite : robotRightSprite;
+
   return (
     <div className="enemy-container" aria-hidden>
-      <div className="enemy" style={style} aria-label="enemy" />
+      <div className="enemy" style={style} aria-label="enemy">
+        <img
+          src={spriteImage}
+          alt="enemy"
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "contain",
+            display: "block",
+          }}
+        />
+        {/* Hitbox visualization */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            border: "2px solid #0f0",
+            boxSizing: "border-box",
+            pointerEvents: "none",
+          }}
+        />
+      </div>
     </div>
   );
 }
