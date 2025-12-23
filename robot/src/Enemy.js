@@ -5,7 +5,7 @@ import "./App.css";
 export default function Enemy({
   id,
   playerPos = { x: 0, y: 0 },
-  size = 64,
+  size = 48,
   speed = 120,
   playerHitboxSize = 200,
   playerHitboxOffset = 0,
@@ -15,6 +15,7 @@ export default function Enemy({
   initialPos = null,
   allEnemies = [],
   onPosUpdate = null,
+  paused = false,
 }) {
   const [pos, setPos] = useState({ x: 50, y: 50 });
   const posRef = useRef(pos);
@@ -49,6 +50,13 @@ export default function Enemy({
 
   // loop de movimentação que segue `playerPos`
   useEffect(() => {
+    if (paused) {
+      // stop the loop while paused
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      lastTimeRef.current = null;
+      return undefined;
+    }
+
     function step(ts) {
       if (lastTimeRef.current == null) lastTimeRef.current = ts;
       const dt = (ts - lastTimeRef.current) / 1000;
@@ -127,7 +135,7 @@ export default function Enemy({
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [playerPos?.x, playerPos?.y, speed, playerHitboxSize, playerHitboxOffset]);
+  }, [playerPos?.x, playerPos?.y, speed, playerHitboxSize, playerHitboxOffset, paused]);
 
   const style = {
     width: `${size}px`,

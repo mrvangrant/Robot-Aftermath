@@ -9,7 +9,7 @@ export default function BulletManager({
   playerPos = { x: 0, y: 0 },
   enemies = [],
   fireRate = 1, // shots per second
-  fireRange = 600,
+  fireRange = 450,
   bulletSpeed = 600,
   onEnemyHit = () => {},
   worldWidth = typeof window !== "undefined" ? window.innerWidth : 800,

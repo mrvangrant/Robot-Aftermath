@@ -3,6 +3,7 @@ import "./App.css";
 import heartImg from "./teste.png";
 import Player from "./Player";
 import Enemy from "./Enemy";
+import LevelUps from "./LevelUps";
 
 function App() {
   const playerSize = 200;
@@ -21,6 +22,21 @@ function App() {
   const [viewport, setViewport] = useState({
     w: typeof window !== "undefined" ? window.innerWidth : 800,
     h: typeof window !== "undefined" ? window.innerHeight : 600,
+  });
+  //constantes para subir de nivel e contar kills
+  const [kills, setKills] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [killToNext, setKillsToNext] = useState(5);
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const [paused, setPaused] = useState(false);
+
+  //player stats
+  const [playerStats, setPlayerStats] = useState({
+    speed: 200,
+    health: 100,
+    damage: 10,
+    fireRate: 1,
+    maxLives: 3
   });
 
   useEffect(() => {
@@ -56,6 +72,15 @@ function App() {
   // quando um inimigo é atingido por uma bala, removemos do array
   function handleEnemyKilled(id) {
     setEnemies((prev) => prev.filter((e) => e.id !== id));
+    setKills(k => {
+    const next = k + 1;
+    // abrir level up se atingir threshold
+    if (next >= killToNext) {
+      setShowLevelUp(true);
+      setPaused(true);
+    }
+    return next;
+  });
   }
 
   // recebe atualizações de posição dos inimigos
@@ -83,11 +108,20 @@ function App() {
     const minDist = enemySize * 5; // distancia minima entre inimigos
     const maxW = Math.max(0, worldWidth - enemySize);
     const maxH = Math.max(0, worldHeight - enemySize);
+    // área visível do jogador (em coordenadas do mundo): queremos spawnar inimigos fora desta área
+    const playerCenterX = playerPos.x + playerSize / 2;
+    const playerCenterY = playerPos.y + playerSize / 2;
+    const visibleLeft = playerCenterX - viewport.w / 2;
+    const visibleTop = playerCenterY - viewport.h / 2;
+    const visibleRight = visibleLeft + viewport.w;
+    const visibleBottom = visibleTop + viewport.h;
+    const spawnMargin = 100; // pixels de margem extra fora do ecrã
     let attempts = 0;
     while (list.length < count && attempts < count * 50) {
       attempts++;
       const rx = Math.floor(Math.random() * (maxW || 1));
       const ry = Math.floor(Math.random() * (maxH || 1));
+      // rejeita posições muito perto de outros inimigos
       let ok = true;
       for (const e of list) {
         const dx = e.x - rx;
@@ -98,6 +132,14 @@ function App() {
         }
       }
       if (!ok) continue;
+
+      // rejeita posições que fiquem dentro da área visível do jogador (com margem)
+      const insideVisible =
+        rx >= visibleLeft - spawnMargin &&
+        rx <= visibleRight + spawnMargin &&
+        ry >= visibleTop - spawnMargin &&
+        ry <= visibleBottom + spawnMargin;
+      if (insideVisible) continue;
       list.push({ id: enemyIdRef.current++, x: rx, y: ry });
     }
     while (list.length < count) {
@@ -162,7 +204,9 @@ function App() {
           >
             <Player
               size={playerSize}
-              speed={280}
+              // usar playerStats quando disponível
+              playerStats={playerStats}
+              paused={paused}
               onPosChange={setPlayerPos}
               alive={playerAlive}
               hitboxScale={playerHitboxScale}
@@ -185,6 +229,7 @@ function App() {
                 playerHitboxSize={playerHitboxSize}
                 playerHitboxOffset={playerHitboxOffset}
                 onDie={(id) => handleEnemyHitById(id)}
+                paused={paused}
                 worldWidth={worldWidth}
                 worldHeight={worldHeight}
               />
@@ -201,8 +246,46 @@ function App() {
           <div className="hud__enemies">
             Inimigos Restantes: {enemies.length}
           </div>
+          <div className="hud__level">Nível: {level}</div>
+          <div className="hud__kills">Kills: {kills}/{killToNext}</div>
         </div>
       </header>
+      {showLevelUp && (
+        <LevelUps
+          playerStats={playerStats}
+          onChoose={(choiceId) => {
+            // aplicar upgrades simples
+            setPlayerStats((prev) => {
+              const next = { ...prev };
+              switch (choiceId) {
+                case "speed":
+                  next.speed = Math.round((next.speed || 200) * 1.2);
+                  break;
+                case "damage":
+                  next.damage = (next.damage || 10) + 5;
+                  break;
+                case "firerate":
+                  // aumentar tiros por segundo
+                  next.fireRate = Number(((next.fireRate || 1) * 1.15).toFixed(2));
+                  break;
+                default:
+                  break;
+              }
+              return next;
+            });
+            // avança nível e reinicia kills
+            setLevel((l) => l + 1);
+            setKills(0);
+            setKillsToNext((k) => Math.max(1, Math.round(k * 1.5)));
+            setShowLevelUp(false);
+            setPaused(false);
+          }}
+          onCancel={() => {
+            setShowLevelUp(false);
+            setPaused(false);
+          }}
+        />
+      )}
       {!playerAlive && (
         <div className="game-over" role="dialog" aria-modal="true">
           <div>

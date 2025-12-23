@@ -20,6 +20,8 @@ import BulletManager from "./BulletManager";
 export default function Player({
   size = 200,
   speed = 280,
+  playerStats = null,
+  paused = false,
   onPosChange,
   alive = true,
   hitboxScale = 0.6,
@@ -75,8 +77,10 @@ export default function Player({
 
   useEffect(() => {
     let rafId = null;
+    const actualSpeed = playerStats && typeof playerStats.speed === "number" ? playerStats.speed : speed;
+    const actualFireRate = playerStats && typeof playerStats.fireRate === "number" ? playerStats.fireRate : fireRate;
 
-    if (!alive) {
+    if (!alive || paused) {
       // se não está vivo, não correr o loop
       lastTimeRef.current = null;
       return undefined;
@@ -105,7 +109,7 @@ export default function Player({
       setPos((p) => {
         const maxW = Math.max(0, (worldWidth || window.innerWidth) - size);
         const maxH = Math.max(0, (worldHeight || window.innerHeight) - size);
-        let nx = p.x + dx * speed * dt;
+        let nx = p.x + dx * actualSpeed * dt;
         let ny = p.y + dy * speed * dt;
         if (nx < 0) nx = 0;
         if (ny < 0) ny = 0;
@@ -169,7 +173,7 @@ export default function Player({
       cancelAnimationFrame(rafId);
       lastTimeRef.current = null;
     };
-  }, [size, speed, sprite, lastDir, alive, worldWidth, worldHeight]);
+  }, [size, speed, sprite, lastDir, alive, worldWidth, worldHeight, paused, playerStats]);
 
   useEffect(() => {
     if (typeof onPosChange === "function") onPosChange(pos);
@@ -217,7 +221,7 @@ export default function Player({
       <BulletManager
         playerPos={centerPos}
         enemies={enemies}
-        fireRate={fireRate}
+        fireRate={playerStats && typeof playerStats.fireRate === "number" ? playerStats.fireRate : fireRate}
         fireRange={fireRange}
         bulletSpeed={bulletSpeed}
         onEnemyHit={onEnemyHit}
