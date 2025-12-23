@@ -2,11 +2,8 @@ import React from "react";
 import "./App.css";
 
 // LevelUps: modal simples com 3 escolhas de upgrade.
-// Props:
-// - playerStats: objeto com stats atuais (speed, damage, fireRate, maxLives)
-// - onChoose(choiceId): chamado quando o jogador escolhe uma opção
-// - onCancel(): opcional, fechar modal sem escolher
-export default function LevelUps({ playerStats = {}, onChoose = () => {}, onCancel = () => {} }) {
+// Usa o mesmo look do ecrã `game-over`.
+export default function LevelUps({ playerStats = {}, onChoose = () => {} }) {
   const choices = [
     {
       id: "speed",
@@ -21,15 +18,16 @@ export default function LevelUps({ playerStats = {}, onChoose = () => {}, onCanc
     {
       id: "firerate",
       title: "Cadência +",
-      desc: `-15% tempo entre tiros (atual ${playerStats.fireRate || 0} tiros/s)`,
+      desc: `+15% tiros/s (atual ${playerStats.fireRate || 0} tiros/s)`,
     },
   ];
 
   return (
-    <div className="levelup-overlay" role="dialog" aria-modal="true">
-      <div className="levelup-modal">
-        <h2>Escolha um upgrade</h2>
-        <div className="levelup-choices">
+    <div className="game-over" role="dialog" aria-modal="true">
+      <div>
+        <div className="game-over__text">Escolha um upgrade</div>
+        <div className="game-over__sub">Escolha uma das opções abaixo para melhorar o seu robo</div>
+        <div className="levelup-choices" style={{ marginTop: 18 }}>
           {choices.map((c) => (
             <button
               key={c.id}
@@ -41,10 +39,7 @@ export default function LevelUps({ playerStats = {}, onChoose = () => {}, onCanc
             </button>
           ))}
         </div>
-        <div style={{ marginTop: 8 }}>
-          <button onClick={onCancel}>Cancelar</button>
         </div>
-      </div>
     </div>
   );
 }

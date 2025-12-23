@@ -250,6 +250,8 @@ function App() {
           <div className="hud__kills">Kills: {kills}/{killToNext}</div>
         </div>
       </header>
+     
+     
       {showLevelUp && (
         <LevelUps
           playerStats={playerStats}
