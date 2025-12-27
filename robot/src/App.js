@@ -5,6 +5,7 @@ import heartImg from "./Vida.png";
 import Player from "./Player";
 import Enemy from "./Enemy";
 import LevelUps from "./LevelUps";
+import backpackImg from "./BackPack.png";
 
 function App() {
   const playerSize = 200; // tamanho do jogador
@@ -30,6 +31,10 @@ function App() {
   const [killToNext, setKillsToNext] = useState(5);
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [paused, setPaused] = useState(false);
+
+  //Inventario do jogador
+  const [inventory, setInventory] = useState([]);
+  const [inventoryOpen, setInventoryOpen] = useState(false);
 
   //player stats
   const [playerStats, setPlayerStats] = useState({
@@ -167,6 +172,17 @@ function App() {
     return () => clearTimeout(t);
   }, [enemies.length]);
 
+  //Mochila - abrir/fechar com a tecla "I"
+  useEffect(() => {
+    function handleKey(e) {
+      if (e.key.toLowerCase() === "i") {
+        setInventoryOpen((prev) => !prev);
+      }
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
+
   // centraliza a camera no jogador
   let tx = -playerPos.x + viewport.w / 2 - playerSize / 2;
   let ty = -playerPos.y + viewport.h / 2 - playerSize / 2;
@@ -180,7 +196,7 @@ function App() {
 
   return (
     <div className="App">
-      <CloudManager />
+      <CloudManager cameraX={tx} cameraY={ty} />
       <header className="App-header">
         <div
           className="camera"
@@ -293,6 +309,27 @@ function App() {
           }}
         />
       )}
+      <div className="inventory-container">
+        <img
+          src={backpackImg} // importa a tua imagem backpack
+          alt="backpack"
+          className="backpack"
+          onClick={() => setInventoryOpen((prev) => !prev)}
+        />
+        {inventoryOpen && (
+          <div className="inventory-modal">
+            {inventory.length === 0 ? (
+              <div className="inventory-empty">Mochila vazia</div>
+            ) : (
+              inventory.map((item, i) => (
+                <div key={i} className="inventory-item">
+                  {item.name}
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
       {!playerAlive && (
         <div className="game-over" role="dialog" aria-modal="true">
           <div>

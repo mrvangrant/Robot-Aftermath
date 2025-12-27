@@ -1,85 +1,87 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import "./cloudManager.css";
 
 const rand = (min, max) => Math.random() * (max - min) + min;
 
-export default function CloudManager({ count = 3, color = "200,200,210" }) {
-  const ref = useRef(null);
+// força máxima do efeito (quanto o nevoeiro reage ao player)
+const PLAYER_INFLUENCE = 8; // px/s (baixo = mais suave)
+
+export default function CloudManager({
+  count = 3,
+  color = "200,200,210",
+  playerVelocityX = 5,
+}) {
+  const canvasRef = useRef(null);
   const rafRef = useRef(null);
   const particlesRef = useRef([]);
-  const [aqFactor, setAqFactor] = useState(1);
   const aqFactorRef = useRef(1);
+  const sizeRef = useRef({ w: 0, h: 0 });
 
   useEffect(() => {
-    const canvas = ref.current;
+    const canvas = canvasRef.current;
     if (!canvas) return;
+
     const ctx = canvas.getContext("2d");
     const dpr = window.devicePixelRatio || 1;
+
+    function createParticle() {
+      const { w, h } = sizeRef.current;
+      return {
+        x: rand(-w, w),
+        y: rand(h * 0.15, h * 0.65),
+        r: rand(w * 0.35, w * 0.65),
+        baseAlpha: rand(0.05, 0.14),
+      };
+    }
 
     function resize() {
       const w = canvas.clientWidth || window.innerWidth;
       const h = canvas.clientHeight || window.innerHeight;
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
-      canvas.style.width = w + "px";
-      canvas.style.height = h + "px";
+
+      sizeRef.current = { w, h };
+
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      particlesRef.current = Array.from({ length: count }, createParticle);
     }
+
     resize();
     window.addEventListener("resize", resize);
 
-    function createParticle() {
-      const w = canvas.clientWidth || window.innerWidth;
-      const h = canvas.clientHeight || window.innerHeight;
-      const dir = Math.random() > 0.5 ? 1 : -1;
-      return {
-        x: rand(0, w),
-        y: rand(h * 0.02, h * 0.6),
-        r: rand(w * 0.22, w * 0.55),
-        alpha: rand(0.03, 0.12),
-        vx: rand(8, 28) * (dir > 0 ? 1 : -1),
-        dir,
-      };
-    }
-
-    particlesRef.current = Array.from({ length: count }, () => createParticle());
-
     let last = performance.now();
+
     function draw(now) {
-      const dt = Math.max(0.001, (now - last) / 1000);
+      const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
-      const w = canvas.clientWidth || window.innerWidth;
-      const h = canvas.clientHeight || window.innerHeight;
+
+      const { w, h } = sizeRef.current;
+
       ctx.clearRect(0, 0, w, h);
       ctx.globalCompositeOperation = "lighter";
 
+      const density = aqFactorRef.current;
+
+      // nevoeiro move SEMPRE no sentido oposto ao player
+      const wind = -playerVelocityX * PLAYER_INFLUENCE * dt;
+
       particlesRef.current.forEach((p) => {
-        p.x += p.vx * dt * 30; // tuned for smooth slow movement
+        p.x += wind;
 
-        // respawn when fully off-screen
-        if (p.dir > 0 && p.x - p.r > w) {
-          p.x = -p.r * 0.6;
-          p.y = rand(h * 0.02, h * 0.6);
-          p.r = rand(w * 0.22, w * 0.55);
-          p.alpha = rand(0.03, 0.12);
-          p.vx = rand(8, 28);
-        } else if (p.dir < 0 && p.x + p.r < 0) {
-          p.x = w + p.r * 0.6;
-          p.y = rand(h * 0.02, h * 0.6);
-          p.r = rand(w * 0.22, w * 0.55);
-          p.alpha = rand(0.03, 0.12);
-          p.vx = -rand(8, 28);
-        }
+        // wrap horizontal
+        if (p.x - p.r > w) p.x = -p.r;
+        if (p.x + p.r < 0) p.x = w + p.r;
 
-        // apply air-quality factor to particle alpha (clamped)
-        const alpha = Math.min((p.alpha || 0.04) * (aqFactorRef.current || 1), 0.6);
-        const grd = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
-        grd.addColorStop(0, `rgba(${color},${alpha})`);
-        grd.addColorStop(0.6, `rgba(${color},${alpha * 0.6})`);
-        grd.addColorStop(1, `rgba(${color},0)`);
+        const alpha = Math.min(p.baseAlpha * density, 0.45);
 
-        ctx.fillStyle = grd;
-        ctx.filter = "blur(12px)";
+        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+        g.addColorStop(0, `rgba(${color},${alpha})`);
+        g.addColorStop(0.75, `rgba(${color},${alpha * 0.45})`);
+        g.addColorStop(1, `rgba(${color},0)`);
+
+        ctx.fillStyle = g;
+        ctx.filter = "blur(20px)";
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fill();
@@ -95,58 +97,50 @@ export default function CloudManager({ count = 3, color = "200,200,210" }) {
       cancelAnimationFrame(rafRef.current);
       window.removeEventListener("resize", resize);
     };
-  }, [count, color]);
+  }, [count, color, playerVelocityX]);
 
-  // fetch air quality and update aqFactor (uses Open-Meteo Air Quality API)
+  /* ================= AIR QUALITY ================= */
   useEffect(() => {
-    const aqRef = aqFactorRef;
+    async function fetchAirQuality() {
+      let lat = 38.72;
+      let lon = -9.13;
 
-    const getPosition = () =>
-      new Promise((resolve, reject) => {
-        if (!navigator.geolocation) return reject(new Error("no-geo"));
-        navigator.geolocation.getCurrentPosition(
-          (p) => resolve(p.coords),
-          (err) => reject(err),
-          { timeout: 5000 }
-        );
-      });
-
-    async function fetchAQ() {
       try {
-        let lat = 38.72;
-        let lon = -9.13; // fallback (Lisbon)
-        try {
-          const c = await getPosition();
-          lat = c.latitude;
-          lon = c.longitude;
-        } catch (e) {
-          // use fallback
-        }
+        const pos = await new Promise((res, rej) =>
+          navigator.geolocation.getCurrentPosition((p) => res(p.coords), rej, {
+            timeout: 5000,
+          })
+        );
+        lat = pos.latitude;
+        lon = pos.longitude;
+      } catch {}
 
-        const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5`;
-        const res = await fetch(url);
-        if (!res.ok) return;
+      try {
+        const res = await fetch(
+          `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=european_aqi,pm2_5`
+        );
         const data = await res.json();
-        const arr = data?.hourly?.pm2_5;
-        if (Array.isArray(arr) && arr.length) {
-          const latest = arr[arr.length - 1] || 0;
-          const factor = Math.min(Math.max(0.6, 1 + latest / 50), 3);
-          aqRef.current = factor;
-          setAqFactor(factor);
-        }
-      } catch (err) {
-        // ignore errors, keep previous factor
-      }
+
+        const aqi = data?.hourly?.european_aqi?.at(-1);
+        const pm = data?.hourly?.pm2_5?.at(-1);
+
+        if (aqi == null || pm == null) return;
+
+        let factor = aqi <= 20 ? 0.7 : aqi <= 40 ? 1.0 : aqi <= 60 ? 1.4 : 1.8;
+
+        factor += Math.min(pm / 100, 0.4);
+        aqFactorRef.current = Math.min(Math.max(factor, 0.6), 2);
+      } catch {}
     }
 
-    fetchAQ();
-    const id = setInterval(fetchAQ, 1000 * 60 * 15); // 15 minutes
+    fetchAirQuality();
+    const id = setInterval(fetchAirQuality, 1000 * 60 * 15);
     return () => clearInterval(id);
   }, []);
 
   return (
     <canvas
-      ref={ref}
+      ref={canvasRef}
       style={{
         position: "absolute",
         inset: 0,
@@ -154,7 +148,6 @@ export default function CloudManager({ count = 3, color = "200,200,210" }) {
         zIndex: 999,
         width: "100%",
         height: "100%",
-        willChange: "transform",
       }}
     />
   );
