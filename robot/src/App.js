@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
+import CloudManager from "./cloudManager";
 import heartImg from "./Vida.png";
 import Player from "./Player";
 import Enemy from "./Enemy";
@@ -179,6 +180,7 @@ function App() {
 
   return (
     <div className="App">
+      <CloudManager />
       <header className="App-header">
         <div
           className="camera"
