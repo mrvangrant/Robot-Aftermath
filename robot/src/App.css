@@ -232,3 +232,50 @@ body,
   font-style: italic;
   opacity: 0.7;
 }
+
+/* GRID */
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 70px);
+  gap: 6px;
+}
+
+/* SLOT */
+.inventory-slot {
+  width: 70px;
+  height: 70px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* IMAGEM */
+.inventory-slot img {
+  max-width: 64px;
+  max-height: 64px;
+  image-rendering: pixelated;
+}
+
+/* NOME */
+.inventory-name {
+  position: absolute;
+  bottom: -14px;
+  font-size: 9px;
+  color: white;
+  text-align: center;
+  width: 100%;
+  pointer-events: none;
+}
+
+/* RARIDADES */
+.inventory-slot.common {
+  border-color: #aaa;
+}
+
+.inventory-slot.rare {
+  border-color: #4aa3ff;
+}

@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
 import CloudManager from "./cloudManager";
-import heartImg from "./Vida.png";
+import heartImg from "./UI-items/Vida.png";
 import Player from "./Player";
 import Enemy from "./Enemy";
 import LevelUps from "./LevelUps";
-import backpackImg from "./BackPack.png";
+import Chest from "./Chest";
+import backpackImg from "./UI-items/BackPack.png";
+import knifeImg from "./items/knife.png";
+import PistolImg from "./items/pistol.png";
 
 function App() {
   const playerSize = 200; // tamanho do jogador
@@ -32,9 +35,10 @@ function App() {
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [paused, setPaused] = useState(false);
 
-  //Inventario do jogador
+  //Inventario do jogador e Chests
   const [inventory, setInventory] = useState([]);
   const [inventoryOpen, setInventoryOpen] = useState(false);
+  const [chests, setChests] = useState([]);
 
   //player stats
   const [playerStats, setPlayerStats] = useState({
@@ -44,6 +48,60 @@ function App() {
     fireRate: 1,
     maxLives: 3,
   });
+
+  // iniciar inventario com a gun
+  useEffect(() => {
+    setInventory([
+      { id: "Pistol", name: "Pistol", icon: PistolImg, rarity: "common" },
+    ]);
+  }, []);
+
+  // itens possíveis no chest
+  const ITEM_POOL = [
+    {
+      id: "knife",
+      name: "Knife",
+      icon: knifeImg,
+      rarity: "common",
+    },
+  ];
+
+  //Obter um random item do chest
+  function getRandomItem() {
+    return ITEM_POOL[Math.floor(Math.random() * ITEM_POOL.length)];
+  }
+
+  // adicionar item ao inventario
+  function addItem(item) {
+    setInventory((prev) => [...prev, item]);
+  }
+
+  // spawn chests em rondas específicas, a cada 3 rondas
+  useEffect(() => {
+    if (round % 3 !== 0) return;
+
+    const x = Math.random() * (worldWidth - 100);
+    const y = Math.random() * (worldHeight - 100);
+
+    setChests((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        x,
+        y,
+        opened: false,
+      },
+    ]);
+  }, [round]);
+
+  // abrir chest
+  function openChest(id) {
+    const item = getRandomItem();
+    addItem(item);
+
+    // remover chest depois de aberto
+    setChests((prev) => prev.filter((c) => c.id !== id));
+  }
 
   useEffect(() => {
     function onResize() {
@@ -233,7 +291,20 @@ function App() {
               worldHeight={worldHeight}
               enemies={enemies}
               onEnemyHit={handleEnemyKilled}
+              inventory={inventory}
             />
+
+            {chests.map((c) => (
+              <Chest
+                key={c.id}
+                x={c.x}
+                y={c.y}
+                playerPos={playerPos}
+                opened={c.opened}
+                onOpen={() => openChest(c.id)}
+              />
+            ))}
+
             {enemies.map((e) => (
               <Enemy
                 key={e.id}
@@ -309,23 +380,31 @@ function App() {
           }}
         />
       )}
+
       <div className="inventory-container">
         <img
-          src={backpackImg} // importa a tua imagem backpack
+          src={backpackImg}
           alt="backpack"
           className="backpack"
           onClick={() => setInventoryOpen((prev) => !prev)}
         />
+
         {inventoryOpen && (
           <div className="inventory-modal">
             {inventory.length === 0 ? (
               <div className="inventory-empty">Mochila vazia</div>
             ) : (
-              inventory.map((item, i) => (
-                <div key={i} className="inventory-item">
-                  {item.name}
-                </div>
-              ))
+              <div className="inventory-grid">
+                {inventory.map((item, i) => (
+                  <div
+                    key={i}
+                    className={`inventory-slot ${item.rarity || "common"}`}
+                  >
+                    <img src={item.icon} alt={item.name} />
+                    <div className="inventory-name">{item.name}</div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
