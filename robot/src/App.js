@@ -10,6 +10,7 @@ import backpackImg from "./UI-items/BackPack.png";
 import knifeImg from "./items/knife.png";
 import PistolImg from "./items/pistol.png";
 import Walls from "./Walls"; // Import the new Walls component
+import backgroundTile from "./background/Tileset_1.png";
 
 function App() {
   const playerSize = 200; // tamanho do jogador
@@ -278,6 +279,9 @@ function App() {
               position: "absolute",
               left: 0,
               top: 0,
+              backgroundImage: `url(${backgroundTile})`,
+              backgroundRepeat: "repeat",
+              backgroundSize: "16px 16px",
             }}
           >
             {/* Render the walls */}
