@@ -11,7 +11,7 @@ export default function Enemy({
   speed = 120,
   playerHitboxSize = 200,
   playerHitboxOffset = 0,
-  onDie,
+  onHitPlayer,
   worldWidth = typeof window !== "undefined" ? window.innerWidth : 800,
   worldHeight = typeof window !== "undefined" ? window.innerHeight : 600,
   initialPos = null,
@@ -85,7 +85,7 @@ export default function Enemy({
         // previne múltiplos hits em curto espaço de tempo
         if (!lastHitRef.current || now - lastHitRef.current > 500) {
           lastHitRef.current = now;
-          if (typeof onDie === "function") onDie(id);
+          if (typeof onHitPlayer === "function") onHitPlayer(id);
         }
       } else if (dist > 1) {
         // segue o jogador

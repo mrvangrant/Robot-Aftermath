@@ -8,6 +8,7 @@ import idleUp from "./player-idle/idle_up.gif";
 import idleDown from "./player-idle/idle_down.gif";
 import idleLeft from "./player-idle/idle_left.gif";
 import idleRight from "./player-idle/idle_right.gif";
+import death from "./player-idle/death.gif";
 import BulletManager from "./weapons/BulletManager";
 import KnifeManager from "./weapons/KnifeManager";
 
@@ -35,6 +36,7 @@ export default function Player({
   const lastTimeRef = useRef(null);
   const [sprite, setSprite] = useState(idleDown);
   const [lastDir, setLastDir] = useState("down");
+  const [deadAnimStarted, setDeadAnimStarted] = useState(false);
 
   // Input handlers
   useEffect(() => {
@@ -171,6 +173,13 @@ export default function Player({
     y: Math.round(pos.y + size / 2),
   };
 
+  useEffect(() => {
+    if (!alive && !deadAnimStarted) {
+      setDeadAnimStarted(true);
+      setSprite(death);
+    }
+  }, [alive, deadAnimStarted]);
+
   return (
     <div
       className="game-container"
@@ -205,24 +214,28 @@ export default function Player({
         aria-label="player"
       />
       {/* BulletManager */}
-      <BulletManager
-        playerPos={centerPos}
-        enemies={enemies}
-        fireRate={playerStats?.fireRate ?? fireRate}
-        fireRange={fireRange}
-        bulletSpeed={bulletSpeed}
-        onEnemyHit={onEnemyHit}
-        worldWidth={worldWidth}
-        worldHeight={worldHeight}
-      />
-      {/* KnifeManager: só funciona se o jogador tiver a faca no inventário */}
-      <KnifeManager
-        playerPos={centerPos}
-        lastDir={lastDir}
-        enemies={enemies}
-        inventory={inventory}
-        onEnemyHit={onEnemyHit}
-      />
+      {alive && !paused && (
+        <BulletManager
+          playerPos={centerPos}
+          enemies={enemies}
+          fireRate={playerStats?.fireRate}
+          fireRange={fireRange}
+          bulletSpeed={bulletSpeed}
+          onEnemyHit={onEnemyHit}
+          worldWidth={worldWidth}
+          worldHeight={worldHeight}
+        />
+      )}
+      {/* KnifeManager */}
+      {alive && !paused && (
+        <KnifeManager
+          playerPos={centerPos}
+          lastDir={lastDir}
+          enemies={enemies}
+          inventory={inventory}
+          onEnemyHit={onEnemyHit}
+        />
+      )}
     </div>
   );
 }

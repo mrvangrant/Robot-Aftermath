@@ -4,6 +4,7 @@ import CloudManager from "./cloudManager";
 import heartImg from "./UI-items/Vida.png";
 import Player from "./Player";
 import Enemy from "./Enemy";
+import EnemyRanger from "./EnemyRanger";
 import LevelUps from "./LevelUps";
 import Chest from "./Chest";
 import backpackImg from "./UI-items/BackPack.png";
@@ -24,6 +25,7 @@ function App() {
   const [round, setRound] = useState(1);
   const [enemies, setEnemies] = useState([]);
   const enemyIdRef = React.useRef(1);
+  const deadEnemiesRef = React.useRef(new Set());
   const [viewport, setViewport] = useState({
     w: typeof window !== "undefined" ? window.innerWidth : 800,
     h: typeof window !== "undefined" ? window.innerHeight : 600,
@@ -39,6 +41,21 @@ function App() {
   const [inventory, setInventory] = useState([]);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [chests, setChests] = useState([]);
+
+  //recorde de pontuação
+  const [maxScore, setMaxScore] = useState(() => {
+    const saved = localStorage.getItem("maxScore");
+    return saved ? Number(saved) : 0;
+  });
+
+  //pontuação do jogador
+  const [score, setScore] = useState(0);
+
+  const ENEMY_SCORES = {
+    basic: 100,
+    ranger: 150,
+    tank: 300,
+  };
 
   //player stats
   const [playerStats, setPlayerStats] = useState({
@@ -113,6 +130,16 @@ function App() {
 
   function handleDeath() {
     setPlayerAlive(false);
+
+    setMaxScore((prev) => {
+      if (score > prev) {
+        localStorage.setItem("maxScore", score);
+        return score;
+      }
+      return prev;
+    });
+
+    setPaused(true);
   }
 
   function handleEnemyHit() {
@@ -120,7 +147,7 @@ function App() {
 
     setLives((prev) => {
       const next = Math.max(0, prev - 1);
-      if (next <= 0) setPlayerAlive(false);
+      if (next <= 0) handleDeath();
       return next;
     });
 
@@ -135,10 +162,25 @@ function App() {
 
   // quando um inimigo é atingido por uma bala, removemos do array
   function handleEnemyKilled(id) {
-    setEnemies((prev) => prev.filter((e) => e.id !== id));
+    //  já morreu → ignora
+    if (deadEnemiesRef.current.has(id)) return;
+
+    // marca como morto imediatamente
+    deadEnemiesRef.current.add(id);
+
+    setEnemies((prev) => {
+      const enemy = prev.find((e) => e.id === id);
+
+      if (enemy) {
+        const points = ENEMY_SCORES[enemy.type] ?? 0;
+        setScore((s) => s + points);
+      }
+
+      return prev.filter((e) => e.id !== id);
+    });
+
     setKills((k) => {
       const next = k + 1;
-      // abrir level up se atingir threshold
       if (next >= killToNext) {
         setShowLevelUp(true);
         setPaused(true);
@@ -146,6 +188,11 @@ function App() {
       return next;
     });
   }
+
+  useEffect(() => {
+    deadEnemiesRef.current.clear();
+    spawnForRound(round);
+  }, [round]);
 
   // recebe atualizações de posição dos inimigos
   function updateEnemyPos(id, x, y, size) {
@@ -163,56 +210,78 @@ function App() {
   }
 
   // spawn numero de inimigos baseado na ronda
-  function spawnForRound(r) {
-    // base inicial de inimigos
-    const base = 5;
-    // aumenta 50% a cada ronda: base * 1.5^(r-1)
-    const count = Math.max(1, Math.round(base * Math.pow(1.5, r - 1)));
-    const list = [];
-    const minDist = enemySize * 5; // distancia minima entre inimigos
-    const maxW = Math.max(0, worldWidth - enemySize);
-    const maxH = Math.max(0, worldHeight - enemySize);
-    // área visível do jogador (em coordenadas do mundo): queremos spawnar inimigos fora desta área
-    const playerCenterX = playerPos.x + playerSize / 2;
-    const playerCenterY = playerPos.y + playerSize / 2;
-    const visibleLeft = playerCenterX - viewport.w / 2;
-    const visibleTop = playerCenterY - viewport.h / 2;
-    const visibleRight = visibleLeft + viewport.w;
-    const visibleBottom = visibleTop + viewport.h;
-    const spawnMargin = 100; // pixels de margem extra fora do ecrã
-    let attempts = 0;
-    while (list.length < count && attempts < count * 50) {
-      attempts++;
-      const rx = Math.floor(Math.random() * (maxW || 1));
-      const ry = Math.floor(Math.random() * (maxH || 1));
-      // rejeita posições muito perto de outros inimigos
-      let ok = true;
-      for (const e of list) {
-        const dx = e.x - rx;
-        const dy = e.y - ry;
-        if (Math.hypot(dx, dy) < minDist) {
-          ok = false;
-          break;
-        }
-      }
-      if (!ok) continue;
+function spawnForRound(r) {
+  const base = 5; // inimigos básicos
+  const basicCount = Math.max(1, Math.round(base * Math.pow(1.5, r - 1)));
 
-      // rejeita posições que fiquem dentro da área visível do jogador (com margem)
-      const insideVisible =
-        rx >= visibleLeft - spawnMargin &&
-        rx <= visibleRight + spawnMargin &&
-        ry >= visibleTop - spawnMargin &&
-        ry <= visibleBottom + spawnMargin;
-      if (insideVisible) continue;
-      list.push({ id: enemyIdRef.current++, x: rx, y: ry });
+  const list = [];
+  const minDist = enemySize * 5; // distância mínima entre inimigos
+  const maxW = Math.max(0, worldWidth - enemySize);
+  const maxH = Math.max(0, worldHeight - enemySize);
+
+  // Calcular número de Rangers
+  let rangerCount = 0;
+  if (r >= 3) {
+    if (r <= 6) {
+      rangerCount = r - 1; // round 3 → 2, round 4 → 3, round 5 → 4, round 6 → 5
+    } else {
+      rangerCount = 4; // depois da ronda 6 mantém 4 Rangers
     }
-    while (list.length < count) {
-      const rx = Math.floor(Math.random() * (maxW || 1));
-      const ry = Math.floor(Math.random() * (maxH || 1));
-      list.push({ id: enemyIdRef.current++, x: rx, y: ry });
-    }
-    setEnemies(list);
   }
+
+  // Spawn básico
+  let attempts = 0;
+  while (list.length < basicCount && attempts < basicCount * 50) {
+    attempts++;
+    const rx = Math.floor(Math.random() * maxW);
+    const ry = Math.floor(Math.random() * maxH);
+
+    let ok = true;
+    for (const e of list) {
+      if (Math.hypot(e.x - rx, e.y - ry) < minDist) {
+        ok = false;
+        break;
+      }
+    }
+    if (!ok) continue;
+
+    list.push({
+      id: enemyIdRef.current++,
+      x: rx,
+      y: ry,
+      type: "basic",
+    });
+  }
+
+  // Spawn Rangers
+  attempts = 0;
+  let spawnedRangers = 0;
+  while (spawnedRangers < rangerCount && attempts < rangerCount * 50) {
+    attempts++;
+    const rx = Math.floor(Math.random() * maxW);
+    const ry = Math.floor(Math.random() * maxH);
+
+    let ok = true;
+    for (const e of list) {
+      if (Math.hypot(e.x - rx, e.y - ry) < minDist) {
+        ok = false;
+        break;
+      }
+    }
+    if (!ok) continue;
+
+    list.push({
+      id: enemyIdRef.current++,
+      x: rx,
+      y: ry,
+      type: "ranger",
+    });
+    spawnedRangers++;
+  }
+
+  setEnemies(list);
+}
+
 
   const worldWidth = Math.max(viewport.w * 2, 2000);
   const worldHeight = Math.max(viewport.h * 2, 2000);
@@ -305,7 +374,8 @@ function App() {
               />
             ))}
 
-            {enemies.map((e) => (
+            {enemies.map((e) =>
+            e.type === "basic" ? (
               <Enemy
                 key={e.id}
                 id={e.id}
@@ -317,23 +387,38 @@ function App() {
                 speed={220}
                 playerHitboxSize={playerHitboxSize}
                 playerHitboxOffset={playerHitboxOffset}
-                onDie={(id) => handleEnemyHitById(id)}
+                onHitPlayer={() => handleEnemyHit()}
                 paused={paused}
                 worldWidth={worldWidth}
                 worldHeight={worldHeight}
               />
-            ))}
-          </div>
+            ) : (
+              <EnemyRanger
+                key={e.id}
+                id={e.id}
+                initialPos={e}
+                playerPos={playerPos}
+                paused={paused}
+                onHitPlayer={handleEnemyHit}
+                size={enemySize}
+              />
+            )
+          )}
         </div>
+      </div>
         <div className="lives" aria-hidden>
           {Array.from({ length: lives }).map((_, i) => (
             <img key={i} src={heartImg} alt={`life-${i + 1}`} />
           ))}
         </div>
         <div className="hud">
-          <div className="hud__round">Ronda: {round}</div>
+          <div className="hud__round">
+            Round: {round}
+            <div className="hud__max-round">Highscore: {maxScore}</div>
+          </div>
           <div className="hud__enemies">
             Inimigos Restantes: {enemies.length}
+            <div className="hud__score">Pontuação: {score}</div>
           </div>
           <div className="hud__level">Nível: {level}</div>
           <div className="hud__kills">
@@ -413,6 +498,8 @@ function App() {
         <div className="game-over" role="dialog" aria-modal="true">
           <div>
             <div className="game-over__text">You died</div>
+            <div className="game-over__sub">Ronda alcançada: {round}</div>
+            <div className="game-over__sub">Pontuação: {score}</div>
             <div className="game-over__sub">Refresh to try again</div>
           </div>
         </div>
