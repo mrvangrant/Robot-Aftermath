@@ -9,6 +9,7 @@ import Chest from "./Chest";
 import backpackImg from "./UI-items/BackPack.png";
 import knifeImg from "./items/knife.png";
 import PistolImg from "./items/pistol.png";
+import Walls from "./Walls"; // Import the new Walls component
 
 function App() {
   const playerSize = 200; // tamanho do jogador
@@ -16,6 +17,7 @@ function App() {
   const playerHitboxSize = Math.round(playerSize * playerHitboxScale);
   const playerHitboxOffset = Math.round((playerSize - playerHitboxSize) / 2);
   const enemySize = 80; // tamanho dos inimigos
+  const wallThickness = 20; // espessura das paredes
   const [playerPos, setPlayerPos] = useState({ x: 100, y: 100 });
   const [playerAlive, setPlayerAlive] = useState(true);
   const maxLives = 3;
@@ -278,6 +280,12 @@ function App() {
               top: 0,
             }}
           >
+            {/* Render the walls */}
+            <Walls
+              worldWidth={worldWidth}
+              worldHeight={worldHeight}
+              wallThickness={wallThickness}
+            />
             <Player
               size={playerSize}
               // usar playerStats quando disponível
@@ -289,6 +297,7 @@ function App() {
               invincible={invincible}
               worldWidth={worldWidth}
               worldHeight={worldHeight}
+              wallThickness={wallThickness}
               enemies={enemies}
               onEnemyHit={handleEnemyKilled}
               inventory={inventory}
@@ -321,6 +330,7 @@ function App() {
                 paused={paused}
                 worldWidth={worldWidth}
                 worldHeight={worldHeight}
+                wallThickness={wallThickness}
               />
             ))}
           </div>

@@ -1,0 +1,32 @@
+/* walls.css */
+
+/* Style for the wall elements */
+.wall {
+  position: absolute; /* Positioned relative to the game world container */
+  background-color: #333; /* Dark grey color for the walls */
+  z-index: 10; /* Ensures walls are rendered above other elements like clouds */
+}
+
+/* Specific positioning for the top wall */
+.wall-top {
+  top: 0;
+  left: 0;
+}
+
+/* Specific positioning for the bottom wall */
+.wall-bottom {
+  bottom: 0;
+  left: 0;
+}
+
+/* Specific positioning for the left wall */
+.wall-left {
+  top: 0;
+  left: 0;
+}
+
+/* Specific positioning for the right wall */
+.wall-right {
+  top: 0;
+  right: 0;
+}

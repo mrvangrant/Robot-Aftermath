@@ -21,6 +21,7 @@ export default function Player({
   hitboxScale = 0.6,
   worldWidth = typeof window !== "undefined" ? window.innerWidth : 800,
   worldHeight = typeof window !== "undefined" ? window.innerHeight : 600,
+  wallThickness = 20, // Default wall thickness
   invincible = false,
   enemies = [],
   onEnemyHit = () => {},
@@ -35,6 +36,9 @@ export default function Player({
   const lastTimeRef = useRef(null);
   const [sprite, setSprite] = useState(idleDown);
   const [lastDir, setLastDir] = useState("down");
+  // Calculate hitbox dimensions upfront
+  const hbSize = Math.round(size * hitboxScale);
+  const hbOffset = Math.round((size - hbSize) / 2);
 
   // Input handlers
   useEffect(() => {
@@ -96,8 +100,14 @@ export default function Player({
       setPos((p) => {
         let nx = p.x + dx * actualSpeed * dt;
         let ny = p.y + dy * actualSpeed * dt;
-        nx = Math.max(0, Math.min(nx, worldWidth - size));
-        ny = Math.max(0, Math.min(ny, worldHeight - size));
+        // Clamp player position based on hitbox boundaries
+        // The hitbox position is at (x + hbOffset, y + hbOffset) with size hbSize
+        const minX = wallThickness - hbOffset;
+        const maxX = worldWidth - wallThickness - hbSize - hbOffset;
+        const minY = wallThickness - hbOffset;
+        const maxY = worldHeight - wallThickness - hbSize - hbOffset;
+        nx = Math.max(minX, Math.min(nx, maxX));
+        ny = Math.max(minY, Math.min(ny, maxY));
         return { x: nx, y: ny };
       });
 
@@ -155,16 +165,15 @@ export default function Player({
     alive,
     worldWidth,
     worldHeight,
+    wallThickness,
     paused,
     playerStats,
+    hitboxScale,
   ]);
 
   useEffect(() => {
     if (onPosChange) onPosChange(pos);
   }, [pos, onPosChange]);
-
-  const hbSize = Math.round(size * hitboxScale);
-  const hbOffset = Math.round((size - hbSize) / 2);
 
   const centerPos = {
     x: Math.round(pos.x + size / 2),
