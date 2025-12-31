@@ -47,12 +47,27 @@ export default function Player({
     SoundManager.loadSound('walk', '/sounds/WalkingPlayer.wav');
     SoundManager.loadSound('shoot', '/sounds/PistolFIre.wav');
     SoundManager.loadSound('knife', '/sounds/knifeSwing.wav');
+
+    // Cleanup: stop music when component unmounts
+    return () => {
+      SoundManager.stopMusic();
+    };
   }, []);
 
   // Input handlers
   useEffect(() => {
+    let musicStarted = false;
+
     function handleKeyDown(e) {
       const key = e.key.toLowerCase();
+      
+      // Start music on first interaction
+      if (!musicStarted) {
+        SoundManager.playMusic('/sounds/Sketchbook 2025-11-19.ogg', true);
+        SoundManager.setMusicVolume(0.1);
+        musicStarted = true;
+      }
+
       if (["w", "a", "s", "d"].includes(key)) {
         e.preventDefault();
         keysRef.current.add(key);
@@ -130,7 +145,7 @@ export default function Player({
       const moving = keys.size > 0;
       // Play walking sound when starting to move
       if (moving && !wasMovingRef.current) {
-        SoundManager.playSound('walk', 0.3);
+        SoundManager.playSound('walk', 0.2);
       }
       wasMovingRef.current = moving;
       if (moving) {

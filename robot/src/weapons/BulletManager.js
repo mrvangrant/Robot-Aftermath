@@ -71,7 +71,7 @@ export default function BulletManager({
             const vx = (dx / len) * bulletSpeed;
             const vy = (dy / len) * bulletSpeed;
             spawn(centerX - 4, centerY - 4, vx, vy);
-            SoundManager.playSound('shoot', 0.4);
+            SoundManager.playSound('shoot', 0.2);
           }
         }
       }
