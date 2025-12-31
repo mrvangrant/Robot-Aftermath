@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import SoundManager from "../SoundManager";
 
 // BulletManager: gerencia os projéteis do jogador.
 // - Procura o inimigo mais próximo dentro de `fireRange`.
@@ -70,6 +71,7 @@ export default function BulletManager({
             const vx = (dx / len) * bulletSpeed;
             const vy = (dy / len) * bulletSpeed;
             spawn(centerX - 4, centerY - 4, vx, vy);
+            SoundManager.playSound('shoot', 0.4);
           }
         }
       }

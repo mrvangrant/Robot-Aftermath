@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import SoundManager from "../SoundManager";
 
 import slashUp from "./slash-up.gif";
 import slashDown from "./slash-down.gif";
@@ -63,6 +64,7 @@ export default function KnifeManager({
         if (since >= 1 / fireRate) {
           lastSlashRef.current = now / 1000;
           spawnSlash(playerPos.x, playerPos.y, lastDir);
+          SoundManager.playSound('knife', 0.5);
 
           if (nearest.d2 <= slashRange * slashRange) {
             try {

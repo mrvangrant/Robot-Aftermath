@@ -10,6 +10,7 @@ import idleLeft from "./player-idle/idle_left.gif";
 import idleRight from "./player-idle/idle_right.gif";
 import BulletManager from "./weapons/BulletManager";
 import KnifeManager from "./weapons/KnifeManager";
+import SoundManager from "./SoundManager";
 
 export default function Player({
   size = 200,
@@ -36,9 +37,17 @@ export default function Player({
   const lastTimeRef = useRef(null);
   const [sprite, setSprite] = useState(idleDown);
   const [lastDir, setLastDir] = useState("down");
+  const wasMovingRef = useRef(false);
   // Calculate hitbox dimensions upfront
   const hbSize = Math.round(size * hitboxScale);
   const hbOffset = Math.round((size - hbSize) / 2);
+
+  // Load sounds on mount
+  useEffect(() => {
+    SoundManager.loadSound('walk', '/sounds/WalkingPlayer.wav');
+    SoundManager.loadSound('shoot', '/sounds/PistolFIre.wav');
+    SoundManager.loadSound('knife', '/sounds/knifeSwing.wav');
+  }, []);
 
   // Input handlers
   useEffect(() => {
@@ -119,6 +128,11 @@ export default function Player({
       else if (keys.has("d")) dir = "right";
 
       const moving = keys.size > 0;
+      // Play walking sound when starting to move
+      if (moving && !wasMovingRef.current) {
+        SoundManager.playSound('walk', 0.3);
+      }
+      wasMovingRef.current = moving;
       if (moving) {
         switch (dir) {
           case "up":

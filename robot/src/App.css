@@ -37,8 +37,10 @@ body,
   left: 0;
   top: 0;
   will-change: transform;
+  background-image: url('./background/Tileset_1.png');
+  background-repeat: repeat;
+  background-size: 16px 16px;
 }
-
 /* Game container holds the player; it fills the header */
 .game-container {
   position: relative;
