@@ -1,158 +1,226 @@
 import React, { useEffect, useRef, useState } from "react";
-import SoundManager from "../SoundManager";
 
-// BulletManager: gerencia os projéteis do jogador.
-// - Procura o inimigo mais próximo dentro de `fireRange`.
-// - Gera (spawn) projéteis com velocidade `bulletSpeed` dirigidos ao inimigo.
-// - Atualiza posição dos projéteis a cada frame, verifica colisões e remove projéteis antigos.
-// - Chama `onEnemyHit(id, bullet)` quando um inimigo é atingido.
+const PISTOL_RANGE = 300; // alcance pistola
+const SMG_RANGE = 350; // alcance SMG
+const SHOTGUN_RANGE = 150; // alcance shotgun
+const SMG_BURST = 3;
+const SMG_DELAY = 0.1;
+const SMG_COOLDOWN = 1.5;
+const SHOTGUN_COOLDOWN = 2.5; // 3 segundos de delay
+
 export default function BulletManager({
-  playerPos = { x: 0, y: 0 },
-  enemies = [],
-  fireRate = 1, // shots per second
-  fireRange = 450,
-  bulletSpeed = 600,
-  onEnemyHit = () => {},
-  worldWidth = typeof window !== "undefined" ? window.innerWidth : 800,
-  worldHeight = typeof window !== "undefined" ? window.innerHeight : 600,
+  playerPos,
+  enemies,
+  inventory,
+  fireRate = 1,
+  bulletSpeed = 700,
+  onEnemyHit,
+  paused = false,
+  gameFrozen = false,
 }) {
   const bulletsRef = useRef([]);
   const [bullets, setBullets] = useState([]);
-  const lastShotRef = useRef(0);
+
+  const pistolLastShot = useRef(0);
   const idRef = useRef(1);
 
+  const smg = useRef({
+    active: false,
+    shots: 0,
+    nextShot: 0,
+    cooldown: 0,
+  });
+
+  const shotgun = useRef({
+    cooldown: 0,
+  });
+
+  function hasSMG() {
+    return inventory.some((i) => i.id === "SMG");
+  }
+
+  function hasShotgun() {
+    return inventory.some((i) => i.id === "Shotgun");
+  }
+
+  function nearestEnemy(px, py) {
+    let best = null;
+    let bestD = Infinity;
+
+    for (const e of enemies) {
+      const cx = e.x + e.w / 2;
+      const cy = e.y + e.h / 2;
+      const d = Math.hypot(cx - px, cy - py);
+      if (d < bestD) {
+        bestD = d;
+        best = { ...e, cx, cy };
+      }
+    }
+    return best;
+  }
+
+  function spawnBullet(px, py, vx, vy, range, type = "Pistol") {
+    bulletsRef.current.push({
+      id: idRef.current++,
+      x: px,
+      y: py,
+      sx: px,
+      sy: py,
+      vx,
+      vy,
+      range,
+      type,
+    });
+  }
+
   useEffect(() => {
-    let raf = null;
+    if (gameFrozen) return;
+
+    let raf;
     let last = performance.now();
 
-    // Encontra o inimigo mais próximo do ponto (px, py).
-    // Retorna null se não houver inimigos.
-    function findNearest(px, py) {
-      let best = null;
-      let bestD2 = Infinity;
-      for (const e of enemies || []) {
-        const ex = (typeof e.x === "number" ? e.x : 0) + (e.w || 0) / 2;
-        const ey = (typeof e.y === "number" ? e.y : 0) + (e.h || 0) / 2;
-        const dx = ex - px;
-        const dy = ey - py;
-        const d2 = dx * dx + dy * dy;
-        if (d2 < bestD2) {
-          bestD2 = d2;
-          best = { ...e, cx: ex, cy: ey, d2 };
-        }
-      }
-      return best;
-    }
-
-    // Cria um novo projétil na posição (x,y) com velocidade (vx, vy).
-    function spawn(x, y, vx, vy) {
-      const b = { id: idRef.current++, x, y, vx, vy, life: 0 };
-      bulletsRef.current.push(b);
-      setBullets([...bulletsRef.current]);
-    }
-
-    // Loop principal (requestAnimationFrame): atualiza projéteis, gera novos tiros quando aplicável
-    function step(now) {
-      const dt = Math.min((now - last) / 1000, 0.05);
+    function loop(now) {
+      const dt = (now - last) / 1000;
       last = now;
+      const t = now / 1000;
 
-      // auto-fire at nearest enemy in range
-      if (playerPos) {
-        const centerX = playerPos.x;
-        const centerY = playerPos.y;
-        const nearest = findNearest(centerX, centerY);
-        if (nearest && nearest.d2 <= fireRange * fireRange) {
-          const since = now / 1000 - (lastShotRef.current || 0);
-          if (since >= 1 / fireRate) {
-            lastShotRef.current = now / 1000;
-            const dx = nearest.cx - centerX;
-            const dy = nearest.cy - centerY;
-            const len = Math.hypot(dx, dy) || 1;
-            const vx = (dx / len) * bulletSpeed;
-            const vy = (dy / len) * bulletSpeed;
-            spawn(centerX - 4, centerY - 4, vx, vy);
-            SoundManager.playSound('shoot', 0.2);
-          }
+      const px = playerPos.x;
+      const py = playerPos.y;
+
+      const target = nearestEnemy(px, py);
+      if (target) {
+        const dx = target.cx - px;
+        const dy = target.cy - py;
+        const len = Math.hypot(dx, dy) || 1;
+
+        const dirX = dx / len;
+        const dirY = dy / len;
+
+        // --- PISTOL ---
+        if (t - pistolLastShot.current >= 1 / fireRate) {
+          pistolLastShot.current = t;
+          spawnBullet(
+            px,
+            py,
+            dirX * bulletSpeed,
+            dirY * bulletSpeed,
+            PISTOL_RANGE,
+            "Pistol"
+          );
         }
-      }
 
-      // update bullets and check collisions
-      if (bulletsRef.current.length > 0) {
-        for (let i = bulletsRef.current.length - 1; i >= 0; i--) {
-          const b = bulletsRef.current[i];
-          b.x += b.vx * dt;
-          b.y += b.vy * dt;
-          b.life += dt;
-
-          // world bounds cleanup
-          if (
-            b.x < -50 ||
-            b.y < -50 ||
-            b.x > (worldWidth || window.innerWidth) + 50 ||
-            b.y > (worldHeight || window.innerHeight) + 50 ||
-            b.life > 6
-          ) {
-            bulletsRef.current.splice(i, 1);
-            continue;
+        // --- SMG ---
+        if (hasSMG()) {
+          const s = smg.current;
+          if (!s.active && t > s.cooldown) {
+            s.active = true;
+            s.shots = SMG_BURST;
+            s.nextShot = t;
           }
 
-          // simple AABB collision with enemies
-          for (const e of enemies || []) {
-            const ex = e.x || 0;
-            const ey = e.y || 0;
-            const ew = e.w || 16;
-            const eh = e.h || 16;
-            if (b.x >= ex && b.x <= ex + ew && b.y >= ey && b.y <= ey + eh) {
-              // hit
-              bulletsRef.current.splice(i, 1);
-              setBullets([...bulletsRef.current]);
-              try {
-                onEnemyHit(e.id, b);
-              } catch (err) {
-                // swallow callback errors
-                // eslint-disable-next-line no-console
-                console.error(err);
-              }
-              break;
+          if (s.active && t >= s.nextShot) {
+            spawnBullet(
+              px,
+              py,
+              dirX * bulletSpeed,
+              dirY * bulletSpeed,
+              SMG_RANGE,
+              "SMG"
+            );
+            s.shots--;
+            s.nextShot = t + SMG_DELAY;
+
+            if (s.shots <= 0) {
+              s.active = false;
+              s.cooldown = t + SMG_COOLDOWN;
             }
           }
         }
-        setBullets([...bulletsRef.current]);
+
+        // --- SHOTGUN ---
+        if (hasShotgun() && t >= shotgun.current.cooldown) {
+          // disparar 5 balas em leque
+          const angles = [-20, -10, 0, 10, 20].map(
+            (deg) => (deg * Math.PI) / 180
+          );
+          angles.forEach((a) => {
+            const angle = Math.atan2(dirY, dirX) + a;
+            spawnBullet(
+              px,
+              py,
+              Math.cos(angle) * bulletSpeed,
+              Math.sin(angle) * bulletSpeed,
+              SHOTGUN_RANGE,
+              "Shotgun"
+            );
+          });
+          shotgun.current.cooldown = t + SHOTGUN_COOLDOWN;
+        }
       }
 
-      raf = requestAnimationFrame(step);
+      // UPDATE BULLETS
+      for (let i = bulletsRef.current.length - 1; i >= 0; i--) {
+        const b = bulletsRef.current[i];
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+
+        const dist = Math.hypot(b.x - b.sx, b.y - b.sy);
+        if (dist > b.range) {
+          bulletsRef.current.splice(i, 1);
+          continue;
+        }
+
+        for (const e of enemies) {
+          if (
+            b.x >= e.x &&
+            b.x <= e.x + e.w &&
+            b.y >= e.y &&
+            b.y <= e.y + e.h
+          ) {
+            bulletsRef.current.splice(i, 1);
+            onEnemyHit?.(e.id);
+            break;
+          }
+        }
+      }
+
+      setBullets([...bulletsRef.current]);
+      raf = requestAnimationFrame(loop);
     }
 
-    raf = requestAnimationFrame(step);
-    return () => {
-      if (raf) cancelAnimationFrame(raf);
-    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
   }, [
-    playerPos,
+    paused,
     enemies,
-    fireRate,
-    fireRange,
+    inventory,
     bulletSpeed,
+    fireRate,
+    playerPos,
     onEnemyHit,
-    worldWidth,
-    worldHeight,
+    gameFrozen,
   ]);
+
+  if (paused) return null;
 
   return (
     <>
       {bullets.map((b) => (
         <div
           key={b.id}
-          className="bullet"
           style={{
             position: "absolute",
-            width: 8,
-            height: 8,
-            borderRadius: 4,
-            background: "yellow",
+            width: 6,
+            height: 6,
+            borderRadius: 3,
+            background:
+              b.type === "SMG"
+                ? "orange"
+                : b.type === "Shotgun"
+                ? "red"
+                : "yellow",
             transform: `translate(${b.x}px, ${b.y}px)`,
             pointerEvents: "none",
-            zIndex: 60,
           }}
         />
       ))}

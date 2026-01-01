@@ -42,11 +42,23 @@ export default function Player({
   const hbSize = Math.round(size * hitboxScale);
   const hbOffset = Math.round((size - hbSize) / 2);
 
+  // Burst fire state
+  const burstRef = useRef({
+    active: false,
+    shotsLeft: 0,
+    nextShotTime: 0,
+    cooldownUntil: 0,
+  });
+
+  function hasSMG() {
+    return inventory?.some((i) => i.id === "SMG");
+  }
+
   // Load sounds on mount
   useEffect(() => {
-    SoundManager.loadSound('walk', '/sounds/WalkingPlayer.wav');
-    SoundManager.loadSound('shoot', '/sounds/PistolFIre.wav');
-    SoundManager.loadSound('knife', '/sounds/knifeSwing.wav');
+    SoundManager.loadSound("walk", "/sounds/WalkingPlayer.wav");
+    SoundManager.loadSound("shoot", "/sounds/PistolFIre.wav");
+    SoundManager.loadSound("knife", "/sounds/knifeSwing.wav");
 
     // Cleanup: stop music when component unmounts
     return () => {
@@ -60,10 +72,10 @@ export default function Player({
 
     function handleKeyDown(e) {
       const key = e.key.toLowerCase();
-      
+
       // Start music on first interaction
       if (!musicStarted) {
-        SoundManager.playMusic('/sounds/Sketchbook 2025-11-19.ogg', true);
+        SoundManager.playMusic("/sounds/Sketchbook 2025-11-19.ogg", true);
         SoundManager.setMusicVolume(0.1);
         musicStarted = true;
       }
@@ -145,7 +157,7 @@ export default function Player({
       const moving = keys.size > 0;
       // Play walking sound when starting to move
       if (moving && !wasMovingRef.current) {
-        SoundManager.playSound('walk', 0.2);
+        SoundManager.playSound("walk", 0.2);
       }
       wasMovingRef.current = moving;
       if (moving) {
@@ -252,6 +264,8 @@ export default function Player({
         onEnemyHit={onEnemyHit}
         worldWidth={worldWidth}
         worldHeight={worldHeight}
+        inventory={inventory}
+        gameFrozen={!alive || paused}
       />
       {/* KnifeManager: só funciona se o jogador tiver a faca no inventário */}
       <KnifeManager
@@ -260,6 +274,7 @@ export default function Player({
         enemies={enemies}
         inventory={inventory}
         onEnemyHit={onEnemyHit}
+        gameFrozen={!alive || paused}
       />
     </div>
   );

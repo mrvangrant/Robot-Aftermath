@@ -3,9 +3,10 @@ import "./App.css";
 import robotLeftSprite from "./robot/robot-left.gif";
 import robotRightSprite from "./robot/robot-right.gif";
 
-// Enemy: aparece aleatoriamente e persegue o jogador.
+// Enemy: segue o jogador, evita outros inimigos, dá pontuação e respeita pausa
 export default function Enemy({
   id,
+  enemyType = "basic", // tipo de inimigo (pontuação)
   playerPos = { x: 0, y: 0 },
   size = 48,
   speed = 120,
@@ -26,12 +27,12 @@ export default function Enemy({
   const rafRef = useRef(null);
   const lastHitRef = useRef(0);
 
-  // atualiza a ref sempre que posição muda
+  // atualiza referência
   useEffect(() => {
     posRef.current = pos;
   }, [pos]);
 
-  // spawn aleatorio ao correr
+  // spawn inicial aleatório ou fornecido
   useEffect(() => {
     if (
       initialPos &&
@@ -43,21 +44,20 @@ export default function Enemy({
       return;
     }
 
-    const maxW = Math.max(0, (worldWidth || window.innerWidth) - size);
-    const maxH = Math.max(0, (worldHeight || window.innerHeight) - size);
+    const maxW = Math.max(0, worldWidth - size);
+    const maxH = Math.max(0, worldHeight - size);
     const rx = Math.floor(Math.random() * (maxW || 1));
     const ry = Math.floor(Math.random() * (maxH || 1));
     setPos({ x: rx, y: ry });
     posRef.current = { x: rx, y: ry };
-  }, [size, worldWidth, worldHeight]);
+  }, [size, worldWidth, worldHeight, initialPos]);
 
-  // loop de movimentação que segue `playerPos`
+  // loop de movimentação
   useEffect(() => {
     if (paused) {
-      // stop the loop while paused
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       lastTimeRef.current = null;
-      return undefined;
+      return;
     }
 
     function step(ts) {
@@ -66,37 +66,38 @@ export default function Enemy({
       lastTimeRef.current = ts;
 
       const cur = posRef.current;
+
       const dx =
-        (playerPos?.x || 0) +
-        (playerHitboxOffset || 0) +
+        playerPos?.x +
+        playerHitboxOffset +
         playerHitboxSize / 2 -
         (cur.x + size / 2);
       const dy =
-        (playerPos?.y || 0) +
-        (playerHitboxOffset || 0) +
+        playerPos?.y +
+        playerHitboxOffset +
         playerHitboxSize / 2 -
         (cur.y + size / 2);
       const dist = Math.hypot(dx, dy);
 
-      // colisão: se a distância entre centros for menor que metade soma dos tamanhos
+      // colisão com player
       const collisionDist = (playerHitboxSize + size) / 2;
       if (dist <= collisionDist) {
         const now = Date.now();
-        // previne múltiplos hits em curto espaço de tempo
         if (!lastHitRef.current || now - lastHitRef.current > 500) {
           lastHitRef.current = now;
-          if (typeof onDie === "function") onDie(id);
+          onDie?.(id, enemyType); // devolve tipo para pontuação
         }
       } else if (dist > 1) {
-        // segue o jogador
-        const tx = dx / dist;
-        const ty = dy / dist;
+        // segue jogador
+        let tx = dx / dist;
+        let ty = dy / dist;
 
-        // separação entre outros inimigos
+        // separação entre inimigos
         const sepRadius = Math.max(size * 1.6, 120);
         let sepX = 0;
         let sepY = 0;
         let sepCount = 0;
+
         for (const other of allEnemies || []) {
           if (!other || other.id === id) continue;
           const ox = other.x;
@@ -127,12 +128,9 @@ export default function Enemy({
         const nx = cur.x + (moveX / mlen) * speed * dt;
         const ny = cur.y + (moveY / mlen) * speed * dt;
 
-        // atualiza direção baseado no movimento horizontal
-        if (moveX < -0.1) {
-          setDirection("left");
-        } else if (moveX > 0.1) {
-          setDirection("right");
-        }
+        // direção para sprite
+        if (moveX < -0.1) setDirection("left");
+        else if (moveX > 0.1) setDirection("right");
 
         setPos({ x: nx, y: ny });
         posRef.current = { x: nx, y: ny };
@@ -153,6 +151,7 @@ export default function Enemy({
     playerHitboxSize,
     playerHitboxOffset,
     paused,
+    allEnemies,
   ]);
 
   const style = {

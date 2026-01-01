@@ -8,7 +8,9 @@ import LevelUps from "./LevelUps";
 import Chest from "./Chest";
 import backpackImg from "./UI-items/BackPack.png";
 import knifeImg from "./items/knife.png";
+import SMGImg from "./items/smg.png";
 import PistolImg from "./items/pistol.png";
+import ShotgunImg from "./items/shotgun.png";
 import Walls from "./Walls"; // Import the new Walls component
 import backgroundTile from "./background/Tileset_1.png";
 
@@ -43,6 +45,14 @@ function App() {
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [chests, setChests] = useState([]);
 
+  // scoring
+  const [score, setScore] = useState(0);
+  const [highScore, setHighScore] = useState(() => {
+    return Number(localStorage.getItem("highScore")) || 0;
+  });
+
+  const gameFrozen = !playerAlive;
+
   //player stats
   const [playerStats, setPlayerStats] = useState({
     speed: 200,
@@ -51,6 +61,14 @@ function App() {
     fireRate: 1,
     maxLives: 3,
   });
+
+  // pontuação ao matar inimigos
+  const ENEMY_SCORE = {
+    basic: 100,
+    // future:
+    // ranger: 150,
+    // tank: 300,
+  };
 
   // iniciar inventario com a gun
   useEffect(() => {
@@ -67,11 +85,31 @@ function App() {
       icon: knifeImg,
       rarity: "common",
     },
+    {
+      id: "SMG",
+      name: "SMG",
+      icon: SMGImg,
+      rarity: "rare",
+    },
+    {
+      id: "Shotgun",
+      name: "Shotgun",
+      icon: ShotgunImg,
+      rarity: "rare",
+    },
   ];
 
   //Obter um random item do chest
   function getRandomItem() {
-    return ITEM_POOL[Math.floor(Math.random() * ITEM_POOL.length)];
+    // filtrar itens que o jogador AINDA NÃO TEM
+    const availableItems = ITEM_POOL.filter(
+      (item) => !inventory.some((inv) => inv.id === item.id)
+    );
+
+    // se já tiver tudo, não dropa nada
+    if (availableItems.length === 0) return null;
+
+    return availableItems[Math.floor(Math.random() * availableItems.length)];
   }
 
   // adicionar item ao inventario
@@ -100,9 +138,12 @@ function App() {
   // abrir chest
   function openChest(id) {
     const item = getRandomItem();
-    addItem(item);
 
-    // remover chest depois de aberto
+    if (item) {
+      addItem(item);
+    }
+
+    // remover chest depois de aberto SEMPRE
     setChests((prev) => prev.filter((c) => c.id !== id));
   }
 
@@ -137,11 +178,27 @@ function App() {
   }
 
   // quando um inimigo é atingido por uma bala, removemos do array
-  function handleEnemyKilled(id) {
+  function handleEnemyKilled(id, enemyType = "basic") {
     setEnemies((prev) => prev.filter((e) => e.id !== id));
+
+    const points = ENEMY_SCORE[enemyType] || 0;
+
+    setScore((prev) => {
+      const next = prev + points;
+
+      setHighScore((hs) => {
+        if (next > hs) {
+          localStorage.setItem("highScore", next);
+          return next;
+        }
+        return hs;
+      });
+
+      return next;
+    });
+
     setKills((k) => {
       const next = k + 1;
-      // abrir level up se atingir threshold
       if (next >= killToNext) {
         setShowLevelUp(true);
         setPaused(true);
@@ -341,17 +398,18 @@ function App() {
         </div>
         <div className="lives" aria-hidden>
           {Array.from({ length: lives }).map((_, i) => (
-            <img key={i} src={heartImg} alt={`life-${i + 1}`} />
+            <img key={i} src={heartImg} alt="" />
           ))}
         </div>
         <div className="hud">
-          <div className="hud__round">Ronda: {round}</div>
+          <div className="hud__round">
+            Ronda: {round}
+            <div className="hud__highscore">Highscore: {highScore}</div>
+          </div>
+
           <div className="hud__enemies">
             Inimigos Restantes: {enemies.length}
-          </div>
-          <div className="hud__level">Nível: {level}</div>
-          <div className="hud__kills">
-            Kills: {kills}/{killToNext}
+            <div className="hud__score">Score: {score}</div>
           </div>
         </div>
       </header>

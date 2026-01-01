@@ -37,7 +37,7 @@ body,
   left: 0;
   top: 0;
   will-change: transform;
-  background-image: url('./background/Tileset_1.png');
+  background-image: url("./background/Tileset_1.png");
   background-repeat: repeat;
   background-size: 16px 16px;
 }
@@ -137,14 +137,32 @@ body,
   pointer-events: none;
 }
 
-.hud__round {
+/* Ronda, Score e Highscore alinhados no centro */
+.hud__round,
+.hud__score,
+.hud__highscore {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  color: #fff;
   font-weight: 700;
   font-size: 18px;
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  color: #fff;
+}
+
+/* Coloca score abaixo da ronda */
+.hud__score {
+  top: 24px;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+/* Highscore em amarelo */
+.hud__highscore {
+  top: 25px;
+  color: yellow;
+  font-weight: 600;
+  font-size: 16px;
 }
 
 .hud__enemies {
@@ -222,7 +240,7 @@ body,
   background: rgba(0, 0, 0, 0.8);
   padding: 8px;
   border-radius: 6px;
-  max-width: 200px;
+  max-width: 400px;
   color: white;
 }
 

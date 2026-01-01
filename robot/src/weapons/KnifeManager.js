@@ -12,6 +12,7 @@ export default function KnifeManager({
   inventory,
   onEnemyHit,
   lastDir,
+  gameFrozen = false,
 }) {
   const [slashes, setSlashes] = useState([]);
   const slashesRef = useRef([]);
@@ -23,6 +24,8 @@ export default function KnifeManager({
   const slashDuration = 0.01; // duração
 
   useEffect(() => {
+    if (gameFrozen) return;
+
     let raf = null;
     let last = performance.now();
 
@@ -64,7 +67,7 @@ export default function KnifeManager({
         if (since >= 1 / fireRate) {
           lastSlashRef.current = now / 1000;
           spawnSlash(playerPos.x, playerPos.y, lastDir);
-          SoundManager.playSound('knife', 0.5);
+          SoundManager.playSound("knife", 0.5);
 
           if (nearest.d2 <= slashRange * slashRange) {
             try {
