@@ -134,35 +134,26 @@ body,
   top: 8px;
   left: 0;
   right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 32px;
   pointer-events: none;
+  font-weight: 600;
+  font-size: 16px;
+  color: #fff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
 }
 
-/* Ronda, Score e Highscore alinhados no centro */
 .hud__round,
 .hud__score,
 .hud__highscore {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  position: relative;
+  transform: none;
   font-weight: 700;
-  font-size: 18px;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
-  color: #fff;
 }
 
-/* Coloca score abaixo da ronda */
-.hud__score {
-  top: 24px;
-  font-weight: 600;
-  font-size: 16px;
-}
-
-/* Highscore em amarelo */
 .hud__highscore {
-  top: 25px;
   color: yellow;
-  font-weight: 600;
-  font-size: 16px;
 }
 
 .hud__enemies {
@@ -298,4 +289,23 @@ body,
 
 .inventory-slot.rare {
   border-color: #4aa3ff;
+}
+
+.flash {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(255, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 99999;
+  opacity: 0;
+  animation: flashAnim 0.2s forwards;
+}
+
+@keyframes flashAnim {
+  0% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+  }
 }

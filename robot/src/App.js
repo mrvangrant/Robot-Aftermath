@@ -13,6 +13,7 @@ import PistolImg from "./items/pistol.png";
 import ShotgunImg from "./items/shotgun.png";
 import Walls from "./Walls"; // Import the new Walls component
 import backgroundTile from "./background/Tileset_1.png";
+import boomImg from "./robot/boom.png";
 
 function App() {
   const playerSize = 200; // tamanho do jogador
@@ -33,6 +34,10 @@ function App() {
     w: typeof window !== "undefined" ? window.innerWidth : 800,
     h: typeof window !== "undefined" ? window.innerHeight : 600,
   });
+  const [flash, setFlash] = useState(false);
+  const [explosions, setExplosions] = useState([]);
+  const [pickupItems, setPickupItems] = useState([]);
+
   //constantes para subir de nivel e contar kills
   const [kills, setKills] = useState(0);
   const [level, setLevel] = useState(1);
@@ -51,7 +56,15 @@ function App() {
     return Number(localStorage.getItem("highScore")) || 0;
   });
 
-  const gameFrozen = !playerAlive;
+  // adicionar explosão do inimigo
+  function addExplosion(x, y) {
+    const id = Date.now() + Math.random(); // ID único
+    setExplosions((prev) => [...prev, { id, x, y }]);
+    // remove depois de 500ms
+    setTimeout(() => {
+      setExplosions((prev) => prev.filter((e) => e.id !== id));
+    }, 500);
+  }
 
   //player stats
   const [playerStats, setPlayerStats] = useState({
@@ -69,6 +82,11 @@ function App() {
     // ranger: 150,
     // tank: 300,
   };
+
+  function triggerFlash() {
+    setFlash(true);
+    setTimeout(() => setFlash(false), 200); // dura 200ms
+  }
 
   // iniciar inventario com a gun
   useEffect(() => {
@@ -135,16 +153,47 @@ function App() {
     ]);
   }, [round]);
 
+  // animação de pickup de item
+  function triggerItemPickup(item, x, y) {
+    const id = Date.now() + Math.random(); // id único
+    setPickupItems((prev) => [...prev, { id, item, x, y, opacity: 1 }]);
+
+    // animação de fade
+    const fadeDuration = 1000; // 1 segundo
+    const interval = 50;
+    let elapsed = 0;
+
+    const fade = setInterval(() => {
+      elapsed += interval;
+      setPickupItems((prev) =>
+        prev.map((p) =>
+          p.id === id ? { ...p, opacity: 1 - elapsed / fadeDuration } : p
+        )
+      );
+
+      if (elapsed >= fadeDuration) {
+        clearInterval(fade);
+        setPickupItems((prev) => prev.filter((p) => p.id !== id));
+      }
+    }, interval);
+  }
+
   // abrir chest
-  function openChest(id) {
+  function openChest(chestId) {
+    // encontra o chest que está a abrir
+    const chest = chests.find((c) => c.id === chestId);
+    if (!chest) return;
+
     const item = getRandomItem();
 
     if (item) {
       addItem(item);
+      // dispara efeito na posição do chest
+      triggerItemPickup(item, chest.x, chest.y);
     }
 
-    // remover chest depois de aberto SEMPRE
-    setChests((prev) => prev.filter((c) => c.id !== id));
+    // remove chest depois de aberto
+    setChests((prev) => prev.filter((c) => c.id !== chestId));
   }
 
   useEffect(() => {
@@ -168,6 +217,8 @@ function App() {
       return next;
     });
 
+    triggerFlash();
+
     // 2 segundos de invencibilidade
     setInvincible(true);
     setTimeout(() => setInvincible(false), 2000);
@@ -179,6 +230,9 @@ function App() {
 
   // quando um inimigo é atingido por uma bala, removemos do array
   function handleEnemyKilled(id, enemyType = "basic") {
+    const enemy = enemies.find((e) => e.id === id);
+    if (enemy) addExplosion(enemy.x + enemySize / 2, enemy.y + enemySize / 2);
+
     setEnemies((prev) => prev.filter((e) => e.id !== id));
 
     const points = ENEMY_SCORE[enemyType] || 0;
@@ -374,7 +428,24 @@ function App() {
                 onOpen={() => openChest(c.id)}
               />
             ))}
-
+            {pickupItems.map((p) => (
+              <img
+                key={p.id}
+                src={p.item.icon}
+                alt={p.item.name}
+                style={{
+                  position: "absolute",
+                  left: p.x,
+                  top: p.y,
+                  width: 100, // tamanho do item no chão
+                  height: 100,
+                  pointerEvents: "none",
+                  opacity: p.opacity,
+                  transition: "opacity 0.05s linear",
+                  zIndex: 1000,
+                }}
+              />
+            ))}
             {enemies.map((e) => (
               <Enemy
                 key={e.id}
@@ -394,6 +465,22 @@ function App() {
                 wallThickness={wallThickness}
               />
             ))}
+            {explosions.map((e) => (
+              <img
+                key={e.id}
+                src={boomImg}
+                alt="explosion"
+                style={{
+                  position: "absolute",
+                  width: enemySize,
+                  height: enemySize,
+                  top: e.y - enemySize / 2,
+                  left: e.x - enemySize / 2,
+                  pointerEvents: "none",
+                  zIndex: 1000,
+                }}
+              />
+            ))}
           </div>
         </div>
         <div className="lives" aria-hidden>
@@ -406,7 +493,6 @@ function App() {
             Ronda: {round}
             <div className="hud__highscore">Highscore: {highScore}</div>
           </div>
-
           <div className="hud__enemies">
             Inimigos Restantes: {enemies.length}
             <div className="hud__score">Score: {score}</div>
@@ -489,6 +575,7 @@ function App() {
           </div>
         </div>
       )}
+      {flash && <div className="flash" />}
     </div>
   );
 }
