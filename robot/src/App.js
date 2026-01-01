@@ -14,8 +14,15 @@ import ShotgunImg from "./items/shotgun.png";
 import Walls from "./Walls"; // Import the new Walls component
 import backgroundTile from "./background/Tileset_1.png";
 import boomImg from "./robot/boom.png";
+import playerIdle from "./player-idle/idle_down.gif";
+import robotLeft from "./robot/robot-left.gif";
+import chestImg from "./items/chest.png";
 
 function App() {
+  const [gameStarted, setGameStarted] = useState(false);
+  const [showStartScreen, setShowStartScreen] = useState(true);
+  const [fadeOutStart, setFadeOutStart] = useState(false);
+  const [showSobre, setShowSobre] = useState(false);
   const playerSize = 200; // tamanho do jogador
   const playerHitboxScale = 0.3;
   const playerHitboxSize = Math.round(playerSize * playerHitboxScale);
@@ -366,6 +373,69 @@ function App() {
   if (ty > 0) ty = 0;
   if (ty < minTy) ty = minTy;
 
+  //Start Screen
+  if (showStartScreen) {
+    return (
+      <div className={`start-screen ${fadeOutStart ? "fade-out" : ""}`}>
+        <h1>Robot Aftermath</h1>
+        <div className="start-buttons">
+          <button
+            onClick={() => {
+              setFadeOutStart(true);
+              setTimeout(() => {
+                setShowStartScreen(false);
+                setGameStarted(true);
+              }, 500); // corresponde à duração do fade
+            }}
+          >
+            Play
+          </button>
+          <button onClick={() => window.close()}>Quit</button>
+          <button onClick={() => setShowSobre((prev) => !prev)}>Sobre</button>
+        </div>
+        {showSobre && (
+          <div className="sobre">
+            <div>
+              <img src={playerIdle} alt="Player" />
+              Player
+            </div>
+            <div>
+              <img src={robotLeft} alt="Enemy" />
+              Enemy
+            </div>
+            <div>
+              <img src={heartImg} alt="Heart" />
+              Life
+            </div>
+            <div>
+              <img src={backpackImg} alt="Inventory" />
+              Inventory
+            </div>
+            <div>
+              <img src={chestImg} alt="Chest" />
+              Chest
+            </div>
+            <div>
+              <img src={PistolImg} alt="Pistol" />
+              Pistol
+            </div>
+            <div>
+              <img src={knifeImg} alt="Knife" />
+              Knife
+            </div>
+            <div>
+              <img src={SMGImg} alt="SMG" />
+              SMG
+            </div>
+            <div>
+              <img src={ShotgunImg} alt="Shotgun" />
+              Shotgun
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
   return (
     <div className="App">
       <CloudManager cameraX={tx} cameraY={ty} />
