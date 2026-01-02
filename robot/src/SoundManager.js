@@ -3,7 +3,7 @@ class SoundManager {
     this.sounds = {};
     this.music = null;
     this.musicVolume = 0.5;
-    this.sfxVolume = 0.7;
+    this.sfxVolume = 1.0;
   }
 
   loadSound(name, path) {
@@ -15,9 +15,9 @@ class SoundManager {
       try {
         const sound = new Audio(this.sounds[name]);
         sound.volume = Math.max(0, Math.min(1, volume));
-        sound.play().catch(err => console.log('Audio play failed:', err));
+        sound.play().catch((err) => console.log("Audio play failed:", err));
       } catch (err) {
-        console.log('Error playing sound:', err);
+        console.log("Error playing sound:", err);
       }
     } else {
       console.warn(`Sound "${name}" not found`);
@@ -31,7 +31,7 @@ class SoundManager {
     this.music = new Audio(path);
     this.music.loop = loop;
     this.music.volume = this.musicVolume;
-    this.music.play().catch(err => console.log('Music play failed:', err));
+    this.music.play().catch((err) => console.log("Music play failed:", err));
   }
 
   stopMusic() {

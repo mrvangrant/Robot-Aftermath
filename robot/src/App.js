@@ -17,6 +17,10 @@ import boomImg from "./robot/boom.png";
 import playerIdle from "./player-idle/idle_down.gif";
 import robotLeft from "./robot/robot-left.gif";
 import chestImg from "./items/chest.png";
+import SoundManager from "./SoundManager";
+import pickupKnife from "./soundfx/knife-pickup.wav";
+import pickupSMG from "./soundfx/machinegun-pickup.wav";
+import pickupShotgun from "./soundfx/shotgun-pickup.wav";
 
 function App() {
   const [gameStarted, setGameStarted] = useState(false);
@@ -72,6 +76,13 @@ function App() {
       setExplosions((prev) => prev.filter((e) => e.id !== id));
     }, 500);
   }
+
+  // carregar sons uma vez
+  useEffect(() => {
+  SoundManager.loadSound("Knife", pickupKnife);
+  SoundManager.loadSound("SMG", pickupSMG);
+  SoundManager.loadSound("Shotgun", pickupShotgun);
+}, []);
 
   //player stats
   const [playerStats, setPlayerStats] = useState({
@@ -140,11 +151,18 @@ function App() {
   // adicionar item ao inventario
   function addItem(item) {
     setInventory((prev) => [...prev, item]);
+
+    SoundManager.playSound(item.id);
   }
 
   // spawn chests em rondas específicas, a cada 3 rondas
   useEffect(() => {
-    if (round % 3 !== 0) return;
+    const availableItems = ITEM_POOL.filter(
+  (item) => !inventory.some((inv) => inv.id === item.id)
+);
+if (availableItems.length === 0) return;
+
+    if (round % 1 !== 0) return;
 
     const x = Math.random() * (worldWidth - 100);
     const y = Math.random() * (worldHeight - 100);
