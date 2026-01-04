@@ -68,10 +68,8 @@ export default function BulletManager({
         SoundManager.playSound("PistolAttack", 0.3);
         break;
       case "SMG":
-        SoundManager.playSound("SMGAttack", 0.2);
         break;
       case "Shotgun":
-        SoundManager.playSound("ShotgunAttack", 0.3);
         break;
       default:
         break;
@@ -137,6 +135,7 @@ export default function BulletManager({
               s.active = false;
               s.cooldown = t + SMG_COOLDOWN;
             }
+            SoundManager.playSound("SMGAttack", 0.2);
           }
         }
 
@@ -156,6 +155,7 @@ export default function BulletManager({
               "Shotgun"
             );
           });
+          SoundManager.playSound("ShotgunAttack", 0.3);
           shotgun.current.cooldown = t + SHOTGUN_COOLDOWN;
         }
       }
