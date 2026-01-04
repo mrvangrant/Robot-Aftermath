@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import SoundManager from "../SoundManager"; // importa o manager de sons
 
-const PISTOL_RANGE = 300;
-const SMG_RANGE = 350;
+const PISTOL_RANGE = 220;
+const SMG_RANGE = 190;
 const SHOTGUN_RANGE = 150;
 const SMG_BURST = 3;
 const SMG_DELAY = 0.1;
