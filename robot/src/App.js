@@ -21,6 +21,12 @@ import SoundManager from "./SoundManager";
 import pickupKnife from "./soundfx/knife-pickup.wav";
 import pickupSMG from "./soundfx/machinegun-pickup.wav";
 import pickupShotgun from "./soundfx/shotgun-pickup.wav";
+import explosionSound from "./soundfx/robot-death.wav";
+import gameOverSound from "./soundfx/game-over.wav";
+import playerHitSound from "./soundfx/player-hurt.wav";
+import pistolAttackSound from "./soundfx/pistol-shot.wav";
+import smgAttackSound from "./soundfx/smg-shot.wav";
+import shotgunAttackSound from "./soundfx/shotgun-shot.wav";
 
 function App() {
   const [gameStarted, setGameStarted] = useState(false);
@@ -52,9 +58,9 @@ function App() {
   //constantes para subir de nivel e contar kills
   const [kills, setKills] = useState(0);
   const [level, setLevel] = useState(1);
-  const [killToNext, setKillsToNext] = useState(5);
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [paused, setPaused] = useState(false);
+  const prevRoundRef = React.useRef(round);
 
   //Inventario do jogador e Chests
   const [inventory, setInventory] = useState([]);
@@ -79,17 +85,30 @@ function App() {
 
   // carregar sons uma vez
   useEffect(() => {
-  SoundManager.loadSound("Knife", pickupKnife);
-  SoundManager.loadSound("SMG", pickupSMG);
-  SoundManager.loadSound("Shotgun", pickupShotgun);
-}, []);
+    //pickups
+    SoundManager.loadSound("Knife", pickupKnife);
+    SoundManager.loadSound("SMG", pickupSMG);
+    SoundManager.loadSound("Shotgun", pickupShotgun);
+
+    //disparos
+    SoundManager.loadSound("PistolAttack", pistolAttackSound);
+    SoundManager.loadSound("SMGAttack", smgAttackSound);
+    SoundManager.loadSound("ShotgunAttack", shotgunAttackSound);
+
+    //explosao do robot
+    SoundManager.loadSound("Explosion", explosionSound);
+
+    //game over
+    SoundManager.loadSound("GameOver", gameOverSound);
+
+    //player hit
+    SoundManager.loadSound("PlayerHit", playerHitSound);
+  }, []);
 
   //player stats
   const [playerStats, setPlayerStats] = useState({
     speed: 200,
-    health: 100,
     damage: 10,
-    fireRate: 1,
     maxLives: 3,
   });
 
@@ -105,6 +124,16 @@ function App() {
     setFlash(true);
     setTimeout(() => setFlash(false), 200); // dura 200ms
   }
+
+  // detectar mudança de ronda para mostrar LevelUp
+  useEffect(() => {
+    if (round !== prevRoundRef.current) {
+      // nova ronda -> mostrar LevelUp
+      setShowLevelUp(true);
+      setPaused(true);
+      prevRoundRef.current = round;
+    }
+  }, [round]);
 
   // iniciar inventario com a gun
   useEffect(() => {
@@ -158,9 +187,9 @@ function App() {
   // spawn chests em rondas específicas, a cada 3 rondas
   useEffect(() => {
     const availableItems = ITEM_POOL.filter(
-  (item) => !inventory.some((inv) => inv.id === item.id)
-);
-if (availableItems.length === 0) return;
+      (item) => !inventory.some((inv) => inv.id === item.id)
+    );
+    if (availableItems.length === 0) return;
 
     if (round % 1 !== 0) return;
 
@@ -236,9 +265,19 @@ if (availableItems.length === 0) return;
   function handleEnemyHit() {
     if (invincible || !playerAlive) return;
 
+    SoundManager.playSound("PlayerHit", 0.4);
+
     setLives((prev) => {
       const next = Math.max(0, prev - 1);
-      if (next <= 0) setPlayerAlive(false);
+
+      if (next <= 0) {
+        setPlayerAlive(false);
+
+        SoundManager.stopMusic();
+
+        SoundManager.playSound("GameOver", 0.7);
+      }
+
       return next;
     });
 
@@ -256,7 +295,11 @@ if (availableItems.length === 0) return;
   // quando um inimigo é atingido por uma bala, removemos do array
   function handleEnemyKilled(id, enemyType = "basic") {
     const enemy = enemies.find((e) => e.id === id);
-    if (enemy) addExplosion(enemy.x + enemySize / 2, enemy.y + enemySize / 2);
+    if (enemy) {
+      addExplosion(enemy.x + enemySize / 2, enemy.y + enemySize / 2);
+
+      SoundManager.playSound("Explosion", 0.2);
+    }
 
     setEnemies((prev) => prev.filter((e) => e.id !== id));
 
@@ -273,15 +316,6 @@ if (availableItems.length === 0) return;
         return hs;
       });
 
-      return next;
-    });
-
-    setKills((k) => {
-      const next = k + 1;
-      if (next >= killToNext) {
-        setShowLevelUp(true);
-        setPaused(true);
-      }
       return next;
     });
   }
@@ -590,37 +624,35 @@ if (availableItems.length === 0) return;
 
       {showLevelUp && (
         <LevelUps
-          playerStats={playerStats}
-          onChoose={(choiceId) => {
-            // aplicar upgrades simples
+          onChoose={(upgrade) => {
             setPlayerStats((prev) => {
               const next = { ...prev };
-              switch (choiceId) {
-                case "speed":
-                  next.speed = Math.round((next.speed || 200) * 1.2);
-                  break;
+
+              switch (upgrade.type) {
                 case "damage":
-                  next.damage = (next.damage || 10) + 5;
+                  next.damage = (next.damage || 10) + upgrade.value;
                   break;
-                case "firerate":
-                  // aumentar tiros por segundo
-                  next.fireRate = Number(
-                    ((next.fireRate || 1) * 1.15).toFixed(2)
+
+                case "speed":
+                  next.speed = Math.round(
+                    (next.speed || 200) * (1 + upgrade.value)
                   );
                   break;
+
+                case "life":
+                  next.maxLives = (next.maxLives || 3) + upgrade.value;
+                  setLives((l) => l + upgrade.value);
+                  break;
+
                 default:
                   break;
               }
+
               return next;
             });
-            // avança nível e reinicia kills
+
+            // reset normal do level up
             setLevel((l) => l + 1);
-            setKills(0);
-            setKillsToNext((k) => Math.max(1, Math.round(k * 1.5)));
-            setShowLevelUp(false);
-            setPaused(false);
-          }}
-          onCancel={() => {
             setShowLevelUp(false);
             setPaused(false);
           }}

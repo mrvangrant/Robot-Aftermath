@@ -247,6 +247,7 @@ body,
   opacity: 0.9;
 }
 
+/* Level-up choices styles */
 .levelup-choices {
   display: flex;
   gap: 12px;
@@ -276,6 +277,34 @@ body,
   font-size: 13px;
   margin-top: 6px;
   font-weight: 600;
+}
+
+.levelup-choice.common {
+  border: 2px solid #aaa;
+}
+
+.levelup-choice.rare {
+  border: 2px solid #3fa9f5;
+  box-shadow: 0 0 12px rgba(63, 169, 245, 0.6);
+}
+
+/* Texto de raridade */
+.levelup-choice .rarity {
+  margin-left: 6px;
+  font-size: 0.7em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.levelup-choice .rarity.common {
+  background: #777;
+  color: white;
+}
+
+.levelup-choice .rarity.rare {
+  background: #3fa9f5;
+  color: white;
 }
 
 /* Inventory styles */
