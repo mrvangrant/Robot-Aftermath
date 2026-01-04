@@ -9,7 +9,7 @@ export default function Enemy({
   enemyType = "basic", // tipo de inimigo (pontuação)
   playerPos = { x: 0, y: 0 },
   size = 48,
-  speed = 120,
+  speed = 100,
   playerHitboxSize = 200,
   playerHitboxOffset = 0,
   onDie,

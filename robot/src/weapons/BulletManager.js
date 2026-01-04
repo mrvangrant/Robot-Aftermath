@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from "react";
 import SoundManager from "../SoundManager"; // importa o manager de sons
 
-const PISTOL_RANGE = 220;
-const SMG_RANGE = 190;
-const SHOTGUN_RANGE = 150;
+const PISTOL_RANGE = 260;
+const SMG_RANGE = 240;
+const SHOTGUN_RANGE = 200;
 const SMG_BURST = 3;
 const SMG_DELAY = 0.1;
 const SMG_COOLDOWN = 1.5;
@@ -100,7 +100,7 @@ export default function BulletManager({
         const dirY = dy / len;
 
         // --- PISTOL ---
-        if (t - pistolLastShot.current >= 1 / fireRate) {
+        if (t - pistolLastShot.current >= 1 / fireRate && len <= PISTOL_RANGE) {
           pistolLastShot.current = t;
           spawnBullet(
             px,
@@ -113,7 +113,7 @@ export default function BulletManager({
         }
 
         // --- SMG ---
-        if (hasSMG()) {
+        if (hasSMG() && len <= SMG_RANGE) {
           const s = smg.current;
           if (!s.active && t > s.cooldown) {
             s.active = true;
@@ -140,7 +140,7 @@ export default function BulletManager({
         }
 
         // --- SHOTGUN ---
-        if (hasShotgun() && t >= shotgun.current.cooldown) {
+        if (hasShotgun() && t >= shotgun.current.cooldown && len <= SHOTGUN_RANGE) {
           const angles = [-20, -10, 0, 10, 20].map(
             (deg) => (deg * Math.PI) / 180
           );
