@@ -175,19 +175,6 @@ export default function Enemy({
             display: "block",
           }}
         />
-        {/* Hitbox visualization */}
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            border: "2px solid #0f0",
-            boxSizing: "border-box",
-            pointerEvents: "none",
-          }}
-        />
       </div>
     </div>
   );

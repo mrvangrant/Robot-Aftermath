@@ -191,7 +191,7 @@ function App() {
     );
     if (availableItems.length === 0) return;
 
-    if (round % 1 !== 0) return;
+    if (round % 3 !== 0) return;
 
     const x = Math.random() * (worldWidth - 100);
     const y = Math.random() * (worldHeight - 100);

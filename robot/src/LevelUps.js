@@ -60,9 +60,6 @@ export default function LevelUps({ onChoose = () => {} }) {
     <div className="game-over" role="dialog" aria-modal="true">
       <div>
         <div className="game-over__text">Escolhe um upgrade</div>
-        <div className="game-over__sub">
-          Cada upgrade tem uma raridade diferente
-        </div>
 
         <div className="levelup-choices" style={{ marginTop: 18 }}>
           {choices.map((c) => (

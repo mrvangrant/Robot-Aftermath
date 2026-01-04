@@ -154,17 +154,6 @@ body,
   will-change: transform;
 }
 
-/* Player hitbox overlay (for debugging collision) */
-.player-hitbox {
-  position: absolute;
-  box-sizing: border-box;
-  border: 2px dashed rgba(255, 0, 0, 0.9);
-  background: rgba(255, 0, 0, 0.08);
-  pointer-events: none;
-  border-radius: 4px;
-  will-change: transform;
-}
-
 /* Game over overlay */
 .game-over {
   position: fixed;
