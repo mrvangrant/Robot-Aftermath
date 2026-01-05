@@ -2,8 +2,6 @@
 
 **Desenvolveu-se este jogo no âmbito da cadeira de Programação e Desenvolvimento Web. O jogo é um _“bullet heaven”_ ou _“survivor-like”_, em que se joga como uma sobrevivente num mundo apocalíptico tomado por robôs. O objetivo é aguentar o máximo de tempo possível contra ondas de robôs num deserto, enquanto se apanham novas armas.**
 
-Também foi implementado o Air Quality API da Open-Meteo, que verifica a qualidade do ar em tempo real e aumenta a intensidade visual do sol no mapa.
-
 
 ## Menu Inicial
 
