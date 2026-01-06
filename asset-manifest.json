@@ -1,0 +1,32 @@
+{
+  "files": {
+    "main.css": "/Robot-Aftermath/static/css/main.18331b1a.css",
+    "main.js": "/Robot-Aftermath/static/js/main.5e1e14ea.js",
+    "static/js/453.ccd5fd2b.chunk.js": "/Robot-Aftermath/static/js/453.ccd5fd2b.chunk.js",
+    "static/media/machinegun-pickup.wav": "/Robot-Aftermath/static/media/machinegun-pickup.0ca4568c5243377d35aa.wav",
+    "static/media/robot-death.wav": "/Robot-Aftermath/static/media/robot-death.5ed7269f9d3f6692e8d9.wav",
+    "static/media/shotgun-pickup.wav": "/Robot-Aftermath/static/media/shotgun-pickup.2d7136cc9ad0b0d11f31.wav",
+    "static/media/shotgun-shot.wav": "/Robot-Aftermath/static/media/shotgun-shot.b326891c76d81916435f.wav",
+    "static/media/knife-pickup.wav": "/Robot-Aftermath/static/media/knife-pickup.20af32b5e2903f8e5a37.wav",
+    "static/media/boom.png": "/Robot-Aftermath/static/media/boom.27a1104fee8f7da3ca5e.png",
+    "static/media/chest.png": "/Robot-Aftermath/static/media/chest.1250b87bdfe61f559475.png",
+    "static/media/game-over.wav": "/Robot-Aftermath/static/media/game-over.6520469b9496b7255d66.wav",
+    "static/media/robot-left.gif": "/Robot-Aftermath/static/media/robot-left.d5fbca586b5b40156f0d.gif",
+    "static/media/robot-right.gif": "/Robot-Aftermath/static/media/robot-right.7992f7164cb0ab385745.gif",
+    "static/media/smg.png": "/Robot-Aftermath/static/media/smg.38d25f20eddf0f524371.png",
+    "static/media/pistol.png": "/Robot-Aftermath/static/media/pistol.65b046b3e2651deeba20.png",
+    "static/media/pistol-shot.wav": "/Robot-Aftermath/static/media/pistol-shot.1e159e93c13dd4e6078e.wav",
+    "static/media/player-hurt.wav": "/Robot-Aftermath/static/media/player-hurt.807cfb24b37180b54b53.wav",
+    "static/media/smg-shot.wav": "/Robot-Aftermath/static/media/smg-shot.bf86595430fb5e4cabfd.wav",
+    "static/media/BackPack.png": "/Robot-Aftermath/static/media/BackPack.7596339a4d1f3e3e80d9.png",
+    "static/media/shotgun.png": "/Robot-Aftermath/static/media/shotgun.127d9f3aaa3f5b148c32.png",
+    "index.html": "/Robot-Aftermath/index.html",
+    "main.18331b1a.css.map": "/Robot-Aftermath/static/css/main.18331b1a.css.map",
+    "main.5e1e14ea.js.map": "/Robot-Aftermath/static/js/main.5e1e14ea.js.map",
+    "453.ccd5fd2b.chunk.js.map": "/Robot-Aftermath/static/js/453.ccd5fd2b.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.18331b1a.css",
+    "static/js/main.5e1e14ea.js"
+  ]
+}
